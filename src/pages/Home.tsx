@@ -204,7 +204,7 @@ export const Home: React.FC = () => {
   const [followUpText, setFollowUpText] = useState("");
   const [followUpFocused, setFollowUpFocused] = useState(false);
   const [chatFocused, setChatFocused] = useState(false);
-  const [activeTab, setActiveTab] = useState<"ai" | "screen" | "chat" | "support">("ai");
+  const [activeTab, setActiveTab] = useState<"ai" | "chat" | "support">("ai");
   const [liveActive, setLiveActive] = useState(false);
   // Fix: load autoAI from saved settings instead of hardcoded true
   const [autoAI, setAutoAI] = useState(() => settings.autoAI ?? true);
@@ -305,8 +305,7 @@ export const Home: React.FC = () => {
     try {
       const provider = getProvider(providerName);
       let fullSolution = "";
-      const latestScreenshot = transcriptOverride ? undefined :
-        screenshotList.length > 0 ? screenshotList[screenshotList.length - 1] : undefined;
+      const latestScreenshot = screenshotList.length > 0 ? screenshotList[screenshotList.length - 1] : undefined;
       const historyContext = sessionMessages.slice(-4).map((m) => ({ role: m.role, content: m.content }));
 
       const stream = provider.streamSolution({
@@ -342,12 +341,12 @@ export const Home: React.FC = () => {
       if (signal.aborted) return;
 
       // Track feature used
-      if (transcriptOverride) featuresUsedRef.current.add("ai-answer");
-      else if (screenshotList.length) featuresUsedRef.current.add("screen");
+      if (screenshotList.length) featuresUsedRef.current.add("screen");
+      else if (transcriptOverride) featuresUsedRef.current.add("ai-answer");
 
       // Save Q&A to session history
       const questionText = transcriptOverride || (followUpQuery && !followUpQuery.includes("staff engineer") ? followUpQuery : "Screen Analysis");
-      const featureTag = transcriptOverride ? "ai-answer" : screenshotList.length ? "screen" : "follow-up";
+      const featureTag = screenshotList.length ? "screen" : transcriptOverride ? "ai-answer" : "follow-up";
       sessionQARef.current.push({ question: questionText, answer: fullSolution, feature: featureTag, timestamp: Date.now() });
 
       // Commit answer to QA page
@@ -477,27 +476,30 @@ export const Home: React.FC = () => {
         abortControllerRef.current = null;
         setIsStreaming(false);
       }
-      // Pause live audio mode if currently running so feature calls never collide
-      if (liveActive) {
-        audio.stopInterview();
-        setLiveActive(false);
+      // Preserve the current live Q&A, then add screen analysis as the next item
+      // without stopping interviewer/system audio.
+      if (liveActive && pendingTranscript && currentSolution) {
+        setQaPages(prev => [...prev, { question: pendingTranscript, answer: currentSolution }]);
       }
       // Reset just the streaming buffer + screenshots for the NEW capture — not
       // sessionMessages, which would erase every previous screen-analysis page
       // (Q1, Q2...) each time a fresh screenshot is taken.
       setCurrentSolution("");
+      setActiveTab("ai");
+      setPendingTranscript("Screen Analysis");
+      audio.clearLiveText();
       clearScreenshots();
       setError(null);
       const rawB64 = await window.ghostly.captureFullscreen();
       const compressedB64 = await compressScreenshot(rawB64, 800, 0.7);
       addScreenshot(compressedB64);
       const screenPrompt = buildPrompt(settings.interviewType, settings.language);
-      runAIStream([compressedB64], undefined, screenPrompt);
+      runAIStream([compressedB64], "Screen Analysis", screenPrompt);
     } catch (err) {
       const message = err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+':\s*/, "") : "Failed to capture screen.";
       setError(message || "Failed to capture screen.");
     }
-  }, [runAIStream, setError, settings.interviewType, settings.language, addScreenshot, liveActive, audio, setCurrentSolution, clearScreenshots, setIsStreaming]);
+  }, [runAIStream, setError, settings.interviewType, settings.language, addScreenshot, liveActive, pendingTranscript, currentSolution, audio, setCurrentSolution, clearScreenshots, setIsStreaming]);
 
   // ── Tab change ──────────────────────────────────────────────────────────────
   const supportAd = useMemo(() => ads.find((ad) => ad.is_active && ad.script_url && ad.container_id), [ads]);
@@ -551,7 +553,7 @@ export const Home: React.FC = () => {
     }
   };
 
-  const handleTabChange = useCallback((tab: "ai" | "screen" | "chat" | "support") => {
+  const handleTabChange = useCallback((tab: "ai" | "chat" | "support") => {
     // Abort any active AI stream when switching tabs to avoid feature collisions
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();

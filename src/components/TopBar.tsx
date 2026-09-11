@@ -10,8 +10,8 @@ interface TopBarProps {
   onMicSend?: () => void;
   onNextQuestion?: () => void;
   showNext?: boolean;
-  activeTab: "ai" | "screen" | "chat" | "support";
-  onTabChange: (tab: "ai" | "screen" | "chat" | "support") => void;
+  activeTab: "ai" | "chat" | "support";
+  onTabChange: (tab: "ai" | "chat" | "support") => void;
   onStop: () => void;
   autoAI: boolean;
   onToggleAutoAI: () => void;
@@ -49,7 +49,6 @@ const SettingsIcon = () => (
 
 const TABS = [
   { id: "ai" as const,      label: "AI Answer", Icon: MicIcon,    color: "#8b5cf6", glow: "rgba(139,92,246,0.5)" },
-  { id: "screen" as const,  label: "Screen",    Icon: ScreenIcon, color: "#3b82f6", glow: "rgba(59,130,246,0.45)" },
   { id: "chat" as const,    label: "Chat",      Icon: ChatIcon,   color: "#a78bfa", glow: "rgba(167,139,250,0.45)" },
   { id: "support" as const, label: "Report",   Icon: null,       color: "#fb923c", glow: "rgba(251,146,60,0.45)" },
 ];
@@ -78,11 +77,6 @@ export const TopBar: React.FC<TopBarProps> = ({
     if (id === "ai") {
       onTabChange(id);
       onToggleLive();
-      return;
-    }
-    if (id === "screen") {
-      onTabChange(id);
-      onScreenAnalysis();
       return;
     }
     onTabChange(id);
@@ -127,6 +121,11 @@ export const TopBar: React.FC<TopBarProps> = ({
               GhotlyAI
             </span>
           </div>
+
+          <button onClick={onScreenAnalysis} title="Capture and analyze the screen in AI Answer"
+            className="no-drag flex items-center gap-1.5 px-2.5 h-7 rounded-[9px] text-[10px] font-bold whitespace-nowrap text-blue-300 bg-blue-500/10 border border-blue-500/25 hover:bg-blue-500/20 transition-all">
+            <ScreenIcon /> Analyze Screen
+          </button>
 
           {/* ── Divider ── */}
           <div className="w-px h-5 shrink-0" style={{ background: "linear-gradient(180deg, transparent, rgba(255,255,255,0.1), transparent)" }} />
@@ -248,7 +247,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             >
               <span className="w-1 h-1 rounded-full" style={{ background: activeTabData.color }} />
               <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: `${activeTabData.color}cc` }}>
-                {activeTab === "support" ? "Support" : activeTab === "ai" ? "AI" : activeTab === "screen" ? "Screen" : "Chat"}
+                {activeTab === "support" ? "Support" : activeTab === "ai" ? "AI" : "Chat"}
               </span>
             </div>
           )}

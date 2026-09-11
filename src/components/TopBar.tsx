@@ -122,8 +122,17 @@ export const TopBar: React.FC<TopBarProps> = ({
             </span>
           </div>
 
-          <button onClick={onScreenAnalysis} title="Capture and analyze the screen in AI Answer"
-            className="no-drag flex items-center gap-1.5 px-2.5 h-7 rounded-[9px] text-[10px] font-bold whitespace-nowrap text-blue-300 bg-blue-500/10 border border-blue-500/25 hover:bg-blue-500/20 transition-all">
+          {/* Keep Close beside the brand so it never gets clipped on narrow windows. */}
+          <button onClick={() => window.ghostly.quit()} title="Close Ghostly"
+            className="no-drag w-8 h-8 flex items-center justify-center rounded-[9px] transition-all shrink-0 text-red-300 bg-red-500/15 border border-red-500/35 hover:bg-red-500/30 hover:text-white">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+
+          <button onClick={onScreenAnalysis} disabled={!isLiveActive}
+            title={isLiveActive ? "Capture and analyze the screen in AI Responses" : "Start AI Answer before analyzing the screen"}
+            className="no-drag flex items-center gap-1.5 px-2.5 h-7 rounded-[9px] text-[10px] font-bold whitespace-nowrap text-blue-300 bg-blue-500/10 border border-blue-500/25 hover:bg-blue-500/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-blue-500/10">
             <ScreenIcon /> Analyze Screen
           </button>
 
@@ -318,18 +327,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             className="no-drag w-7 h-7 rounded-[9px] text-white/40 hover:text-white hover:bg-white/10 transition-all">□</button>
 
 
-          {/* ── Close ── */}
-          <button
-            onClick={() => window.ghostly.quit()}
-            className="w-8 h-8 flex items-center justify-center rounded-[9px] transition-all duration-200 shrink-0"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.3)" }}
-            onMouseEnter={e => { window.ghostly.enableMouse(); e.currentTarget.style.background = "rgba(239,68,68,0.18)"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.4)"; e.currentTarget.style.color = "#f87171"; e.currentTarget.style.boxShadow = "0 0 10px rgba(239,68,68,0.2)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; e.currentTarget.style.color = "rgba(255,255,255,0.3)"; e.currentTarget.style.boxShadow = "none"; }}
-          >
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
         </div>
 
         {/* ── Live Transcript Strip ── */}

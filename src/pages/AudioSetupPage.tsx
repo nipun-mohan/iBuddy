@@ -159,8 +159,8 @@ export const AudioSetupPage: React.FC = () => {
           </div>
           <button
             onClick={() => { stopStream(); setAppScreen("api-setup"); }}
-            className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-xl transition-all"
-            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}
+            className="flex items-center gap-2 text-[11px] font-extrabold px-3 py-2 rounded-xl transition-all"
+            style={{ background: "rgba(139,92,246,0.18)", border: "1px solid rgba(167,139,250,0.45)", color: "rgba(255,255,255,0.92)", boxShadow: "0 3px 12px rgba(0,0,0,0.3)" }}
             onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; e.currentTarget.style.color = "#fff"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
           >

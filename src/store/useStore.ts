@@ -87,6 +87,9 @@ export interface InterviewSession {
   roundName?: string;
   roundPrompt?: string;
   programmingLanguage?: string;
+  jobDescription?: string;
+  resumeName?: string;
+  resumeText?: string;
 }
 
 export interface Settings {

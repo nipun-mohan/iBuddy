@@ -154,11 +154,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
               <span className="text-[15px]">⚙️</span>
               <span className="text-[14px] font-black tracking-tight" style={{ color: "rgba(255,255,255,0.9)" }}>Settings</span>
             </div>
-            <button onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-[11px] transition-all"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}
+            <button onClick={onClose} title="Close settings"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-[14px] font-black transition-all"
+              style={{ background: "rgba(239,68,68,0.16)", border: "1px solid rgba(248,113,113,0.4)", color: "#fca5a5" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.15)"; e.currentTarget.style.color = "#f87171"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.4)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.16)"; e.currentTarget.style.color = "#fca5a5"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.4)"; }}>
               ✕
             </button>
           </div>

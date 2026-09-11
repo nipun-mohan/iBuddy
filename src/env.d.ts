@@ -30,6 +30,7 @@ interface Window {
     getVersion: () => string;
     onShow: (cb: () => void) => () => void;
     captureFullscreen: () => Promise<string>;
+    attachResume: () => Promise<{ name: string; text: string } | null>;
     getSettings: () => Promise<any>;
     saveSettings: (settings: any) => Promise<void>;
     setOpacity: (value: number) => void;

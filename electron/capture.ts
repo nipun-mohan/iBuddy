@@ -21,18 +21,14 @@ export async function captureFullScreen(): Promise<string> {
   const targetHeight = Math.round((targetWidth / width) * height);
 
   const win = BrowserWindow.getAllWindows()[0] || null;
-  const previousOpacity = win?.getOpacity() ?? 1;
-  const wasVisible = Boolean(win?.isVisible());
-
   try {
-    // Capture protection can prevent ScreenCaptureKit from returning a usable
-    // display thumbnail. Hide the overlay first, then temporarily remove only
-    // the protection flag while Electron performs its own screenshot.
+    // Temporarily remove capture protection so Electron can read the display.
+    // Keep the window visible and at its current opacity: changing opacity here
+    // caused a noticeable hide/show blink every time Analyze Screen was pressed.
     if (win && !win.isDestroyed()) {
-      win.setOpacity(0);
       removeStealthMode(win);
     }
-    await wait(250);
+    await wait(50);
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const sources = await desktopCapturer.getSources({
@@ -53,8 +49,6 @@ export async function captureFullScreen(): Promise<string> {
   } finally {
     if (win && !win.isDestroyed()) {
       applyStealthMode(win);
-      win.setOpacity(previousOpacity);
-      if (wasVisible) win.showInactive();
       safeguardVisibility(win);
     }
   }

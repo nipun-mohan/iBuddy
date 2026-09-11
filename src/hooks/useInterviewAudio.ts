@@ -61,6 +61,7 @@ function sanitizeText(text: string): string {
 export function useInterviewAudio() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [liveText, setLiveText] = useState("");
+  const [utteranceEndToken, setUtteranceEndToken] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [isModelReady, setIsModelReady] = useState(false);
@@ -273,7 +274,10 @@ export function useInterviewAudio() {
           if (!isMountedRef.current) return;
           try {
             const data = JSON.parse(ev.data);
-            if (data.type === "UtteranceEnd") return;
+            if (data.type === "UtteranceEnd") {
+              setUtteranceEndToken((value) => value + 1);
+              return;
+            }
             const alt = data.channel?.alternatives?.[0];
             const rawTranscript = alt?.transcript;
             if (!rawTranscript?.trim()) return;
@@ -287,6 +291,7 @@ export function useInterviewAudio() {
             } else {
               setLiveText(acc + (acc ? " " : "") + transcript);
             }
+            if (data.speech_final) setUtteranceEndToken((value) => value + 1);
           } catch { /* malformed JSON — ignore */ }
         };
 
@@ -389,6 +394,7 @@ export function useInterviewAudio() {
   return {
     messages,
     liveText,
+    utteranceEndToken,
     isRecording,
     isMicMuted,
     toggleMicMute,

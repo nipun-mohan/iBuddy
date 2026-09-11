@@ -113,6 +113,10 @@ export const InterviewSetupPage: React.FC = () => {
   const [newRoundName, setNewRoundName] = useState("");
   const [autoAI, setAutoAI]           = useState(settings.autoAI ?? true);
   const [customInstructions, setCustomInstructions] = useState(settings.customInstructions ?? "");
+  const [jobDescription, setJobDescription] = useState("");
+  const [resumeName, setResumeName] = useState("");
+  const [resumeText, setResumeText] = useState("");
+  const [resumeStatus, setResumeStatus] = useState("");
   const [langOpen, setLangOpen]       = useState(false);
   const [profile, setProfile]         = useState<CandidateProfile>(savedProfile ?? EMPTY_PROFILE);
   const [activeTab, setActiveTab]     = useState<"session" | "rounds" | "profile">("session");
@@ -130,6 +134,19 @@ export const InterviewSetupPage: React.FC = () => {
       setProfile(p => ({ ...p, [key]: e.target.value }));
   const selLang = LANGUAGES.find(l => l.id === language) || LANGUAGES[0];
 
+  const handleAttachResume = async () => {
+    setResumeStatus("Reading resume…");
+    try {
+      const resume = await window.ghostly.attachResume();
+      if (!resume) { setResumeStatus(""); return; }
+      setResumeName(resume.name);
+      setResumeText(resume.text);
+      setResumeStatus(`${resume.name} attached`);
+    } catch (error) {
+      setResumeStatus(error instanceof Error ? error.message : "Could not read resume");
+    }
+  };
+
   const handleContinue = async () => {
     if (!isReady) return;
     const selectedRound = rounds.find(round => round.id === selectedRoundId) || rounds[0];
@@ -141,6 +158,7 @@ export const InterviewSetupPage: React.FC = () => {
       profile: hasProfile ? profile : null,
       roundId: selectedRound.id, roundName: selectedRound.name,
       roundPrompt: selectedRound.prompt, programmingLanguage: codeLanguage,
+      jobDescription: jobDescription.trim(), resumeName, resumeText,
     });
     setTimeout(() => window.ghostly.saveSettings(useStore.getState().settings), 50);
     setAppScreen("api-setup");
@@ -198,8 +216,8 @@ export const InterviewSetupPage: React.FC = () => {
           </div>
           <button
             onClick={() => setAppScreen("home")}
-            className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-xl transition-all"
-            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}
+            className="flex items-center gap-2 text-[11px] font-extrabold px-3 py-2 rounded-xl transition-all"
+            style={{ background: "rgba(139,92,246,0.18)", border: "1px solid rgba(167,139,250,0.45)", color: "rgba(255,255,255,0.92)", boxShadow: "0 3px 12px rgba(0,0,0,0.3)" }}
             onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; e.currentTarget.style.color = "#fff"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
           >
@@ -319,6 +337,28 @@ export const InterviewSetupPage: React.FC = () => {
                       {PROGRAMMING_LANGUAGES.map(item => <option key={item} value={item}>{item}</option>)}
                     </select>
                   </div>
+                </div>
+
+                <GlassTextarea
+                  value={jobDescription}
+                  onChange={setJobDescription}
+                  placeholder="Paste the responsibilities, requirements, and preferred skills…"
+                  rows={4}
+                  label="Job Description"
+                  emoji="📋"
+                />
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">📎 Resume</label>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleAttachResume}
+                      className="flex-1 rounded-xl px-3 py-2.5 text-[10px] font-bold text-violet-300 bg-violet-500/10 border border-violet-500/25 hover:bg-violet-500/20 transition-all">
+                      {resumeName ? "Replace Resume" : "Attach PDF, DOCX or TXT"}
+                    </button>
+                    {resumeName && <button type="button" onClick={() => { setResumeName(""); setResumeText(""); setResumeStatus(""); }}
+                      className="rounded-xl px-3 text-[10px] text-red-300 bg-red-500/10 border border-red-500/20">Remove</button>}
+                  </div>
+                  {resumeStatus && <p className={`text-[8.5px] font-semibold ${resumeText ? "text-green-400/70" : "text-white/35"}`}>{resumeStatus}</p>}
                 </div>
 
                 {/* Auto AI toggle */}

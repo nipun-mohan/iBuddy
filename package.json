@@ -1,6 +1,6 @@
 {
   "name": "ghostly",
-  "version": "3.7.1",
+  "version": "3.7.4",
   "description": "Stealth AI coding assistant for technical interviews",
   "main": "./out/main/index.js",
   "author": "Ghostly",
@@ -23,6 +23,8 @@
     "electron-updater": "^6.8.3",
     "framer-motion": "^11.15.0",
     "koffi": "^2.15.1",
+    "mammoth": "^1.10.0",
+    "pdf-parse": "^1.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^9.0.1",

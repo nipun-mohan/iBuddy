@@ -297,6 +297,7 @@ export const Home: React.FC = () => {
       || DEFAULT_ROUND_TEMPLATES.find(round => round.id === settings.interviewType);
     const roundPrompt = interviewSession?.roundPrompt || configuredRound?.prompt || "";
     const customInstructions = [
+      buildSessionContext(interviewSession),
       `Required programming language for every code sample: ${interviewSession?.programmingLanguage || settings.language}. Never substitute Python unless Python is selected.`,
       roundPrompt,
       settings.customInstructions?.trim(),
@@ -362,16 +363,13 @@ export const Home: React.FC = () => {
       addSessionMessage({ id: uuidv4(), role: "user", content: questionText, screenshotBase64: latestScreenshot });
       addSessionMessage({ id: uuidv4(), role: "assistant", content: fullSolution });
 
-      // Clear the streaming buffer + used screenshots on completion, WITHOUT wiping
-      // sessionMessages — that history is exactly what powers Q1/Q2/Q3 pagination for
-      // Screen Analysis and AI-answer follow-ups. This used to call clearSolution(),
-      // which also resets sessionMessages to [] — deleting the answer just added to
-      // history (lines above) a moment after adding it, which is why a completed
-      // Screen Analysis answer would flash on screen and then vanish entirely.
-      if (!liveActive) {
-        setCurrentSolution("");
-        clearScreenshots();
-      }
+      // Completed answers now live in one sessionMessages-backed response feed.
+      // Clear only the transient streaming item after committing the pair; never
+      // clear sessionMessages here, because it contains both spoken Q&A and screen
+      // analysis results shown in the same AI Response view.
+      setCurrentSolution("");
+      setPendingTranscript("");
+      clearScreenshots();
 
     } catch (err) {
       if (signal.aborted) return;
@@ -384,6 +382,8 @@ export const Home: React.FC = () => {
   // ── Auto AI: silence detection — 2.5s after last transcript change ──────────
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastLiveTextRef = useRef("");
+  const lastUtteranceTokenRef = useRef(0);
+  const lastAutoSubmissionRef = useRef({ text: "", time: 0 });
   // Fix: stable ref to avoid stale closure inside setTimeout
   const runAIStreamRef = useRef(runAIStream);
   useEffect(() => { runAIStreamRef.current = runAIStream; }, [runAIStream]);
@@ -391,21 +391,23 @@ export const Home: React.FC = () => {
   useEffect(() => {
     if (!liveActive || !autoAI || isStreaming) return;
     const text = audio.liveText.trim();
-    if (!text || text === lastLiveTextRef.current) return;
+    if (!text) return;
+    const endpointReached = audio.utteranceEndToken !== lastUtteranceTokenRef.current;
+    if (text === lastLiveTextRef.current && !endpointReached) return;
     lastLiveTextRef.current = text;
+    lastUtteranceTokenRef.current = audio.utteranceEndToken;
 
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     const endsWithQuestion = text.endsWith("?") || text.includes("?");
-    const silenceDelay = endsWithQuestion ? 800 : 2200;
+    const silenceDelay = endpointReached ? 250 : endsWithQuestion ? 650 : 1400;
 
     silenceTimerRef.current = setTimeout(() => {
       const current = audio.liveText.trim();
       if (!current || isStreaming) return;
-
-      // Filter out short filler interjections (< 4 words unless ends with ?)
-      const words = current.split(/\s+/).filter(Boolean);
-      const isShortFiller = words.length < 4 && !current.endsWith("?");
-      if (isShortFiller) return;
+      const normalized = current.toLowerCase().replace(/\s+/g, " ");
+      const previous = lastAutoSubmissionRef.current;
+      if (previous.text === normalized && Date.now() - previous.time < 8000) return;
+      lastAutoSubmissionRef.current = { text: normalized, time: Date.now() };
 
       // Auto-save previous Q&A into QA History Pages before starting new question
       if (pendingTranscript && currentSolution) {
@@ -419,7 +421,7 @@ export const Home: React.FC = () => {
     }, silenceDelay);
 
     return () => { if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current); };
-  }, [audio.liveText, liveActive, autoAI, isStreaming, pendingTranscript, currentSolution]);
+  }, [audio.liveText, audio.utteranceEndToken, liveActive, autoAI, isStreaming, pendingTranscript, currentSolution]);
 
   // ── Toggle Live Mode (AI Answer tab click) ──────────────────────────────────
   const handleToggleLive = useCallback(() => {
@@ -469,6 +471,10 @@ export const Home: React.FC = () => {
 
   // ── Screen Analysis ─────────────────────────────────────────────────────────
   const handleScreenAnalysis = useCallback(async () => {
+    if (!liveActive) {
+      setError("Start AI Answer before analyzing the screen.");
+      return;
+    }
     try {
       // Abort any ongoing AI stream first
       if (abortControllerRef.current) {
@@ -697,6 +703,8 @@ export const Home: React.FC = () => {
     abortControllerRef.current = null;
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     lastLiveTextRef.current = "";
+    lastUtteranceTokenRef.current = audio.utteranceEndToken;
+    lastAutoSubmissionRef.current = { text: "", time: 0 };
     setIsStreaming(false);
     clearSolution();
     audio.stopInterview();
@@ -866,7 +874,12 @@ export const Home: React.FC = () => {
           onTabChange={handleTabChange}
           onStop={() => { saveSessionToHistory(); handleRestart(); useStore.getState().setAppScreen("home"); setTimeout(() => window.ghostly.enableMouse(), 50); setTimeout(() => window.ghostly.enableMouse(), 300); }}
           autoAI={autoAI}
-          onToggleAutoAI={() => setAutoAI(v => !v)}
+          onToggleAutoAI={() => setAutoAI(v => {
+            const next = !v;
+            updateSettings({ autoAI: next });
+            setTimeout(() => window.ghostly.saveSettings(useStore.getState().settings), 0);
+            return next;
+          })}
           isMicMuted={audio.isMicMuted}
           onToggleMicMute={audio.toggleMicMute}
         />
@@ -925,31 +938,14 @@ export const Home: React.FC = () => {
                   </>
                 ) : (
                 <>
-                  <div className="flex items-center gap-1.5" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
-                    <button onClick={() => { setUserNavigated(true); setPageIndex(p => Math.max(0, p - 1)); }}
-                      disabled={pageIndex === 0 || totalPages === 0}
-                      className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/30 hover:text-white/70 disabled:opacity-20 transition-colors text-sm">‹</button>
-                    <span className="text-[11px] text-white/30 font-mono tabular-nums min-w-[40px] text-center">
-                      {totalPages === 0 ? "—" : `${Math.min(pageIndex + 1, totalPages)} / ${totalPages}`}
-                    </span>
-                    <button onClick={() => { setUserNavigated(true); setPageIndex(p => Math.min(Math.max(0, totalPages - 1), p + 1)); }}
-                      disabled={pageIndex >= totalPages - 1 || totalPages === 0}
-                      className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/30 hover:text-white/70 disabled:opacity-20 transition-colors text-sm">›</button>
+                  <div className="flex items-center gap-2" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
+                    <span className="text-[11px] font-semibold text-white/50 font-sans">AI Responses</span>
+                    {normalQaPairs.length > 0 && (
+                      <span className="text-[9px] text-white/25 font-mono">{normalQaPairs.length}</span>
+                    )}
                   </div>
 
-                  {/* Dots */}
-                  {totalPages > 1 && (
-                    <div className="flex gap-1.5 items-center" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
-                      {Array.from({ length: Math.min(totalPages, 10) }).map((_, i) => (
-                        <button key={i} onClick={() => { setUserNavigated(true); setPageIndex(i); }}
-                          className={`rounded-full transition-all ${
-                            i === pageIndex ? "w-5 h-1.5 bg-[#eb9245]" :
-                            i === livePageIndex && liveActive ? "w-1.5 h-1.5 bg-green-400/70" :
-                            "w-1.5 h-1.5 bg-white/20 hover:bg-white/40"
-                          }`} />
-                      ))}
-                    </div>
-                  )}
+                  <div />
 
                   {/* Right controls */}
                   <div className="flex items-center gap-2" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
@@ -1091,8 +1087,8 @@ export const Home: React.FC = () => {
                     )}
                   </div>
                 ) : (
-                <AnimatePresence mode="wait">
-                  {totalPages === 0 && !isStreaming ? (
+                <div className="flex flex-col gap-6">
+                  {normalQaPairs.length === 0 && !isStreaming && !liveAnswer ? (
                     /* Empty state */
                     <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                       className="h-full flex flex-col items-center justify-center gap-4 text-center py-8">
@@ -1123,74 +1119,79 @@ export const Home: React.FC = () => {
                         )
                       )}
                     </motion.div>
-                  ) : (
-                    <motion.div key={pageIndex}
-                      initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.1 }}
-                      className="flex flex-col gap-5">
+                  ) : null}
 
-                      {/* ── Interviewer Question ── */}
-                      {/* Hide question box for Screen Analysis or system prompt */}
-                      {!(isOnLivePage && liveActive) &&
-                        (isOnLivePage ? liveQuestion : activePage?.question) &&
-                        activePage?.question !== "Screen Analysis" &&
-                        !activePage?.question?.includes("staff engineer") && (
+                  {/* Every completed spoken answer, follow-up, and screen analysis
+                      is rendered in this one chronological AI Response feed. */}
+                  {normalQaPairs.map((pair, index) => {
+                    const question = pair.user?.content || "";
+                    const answer = pair.assistant?.content || "";
+                    const isScreenAnalysis = question === "Screen Analysis";
+                    return (
+                      <motion.div key={pair.user?.id || index}
+                        initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                        className="flex flex-col gap-3 border-b border-white/[0.06] pb-6 last:border-b-0">
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] font-bold text-yellow-400/60 uppercase tracking-widest">🎙️ Interviewer</span>
-                              {!isOnLivePage && (
-                                <span className="text-[9px] text-white/20 font-mono">Q{pageIndex + 1}</span>
-                              )}
+                              <span className={`text-[10px] font-bold uppercase tracking-widest ${isScreenAnalysis ? "text-cyan-400/70" : "text-yellow-400/60"}`}>
+                                {isScreenAnalysis ? "🖥️ Screen Analysis" : "🎙️ Interviewer"}
+                              </span>
+                              <span className="text-[9px] text-white/20 font-mono">#{index + 1}</span>
                             </div>
-                            <CopyButton text={isOnLivePage ? liveQuestion : activePage?.question || ""} />
+                            {!isScreenAnalysis && <CopyButton text={question} />}
                           </div>
-                          <div className="text-[13px] text-white/80 leading-relaxed font-sans bg-white/[0.03] rounded-xl px-4 py-3 border border-white/[0.05]">
-                            {isOnLivePage ? liveQuestion : activePage?.question}
-                          </div>
+                          {!isScreenAnalysis && <div className="text-[13px] text-white/80 leading-relaxed font-sans bg-white/[0.03] rounded-xl px-4 py-3 border border-white/[0.05]">{question}</div>}
                         </div>
-                      )}
-
-                      {/* ── AI Answer ── clean main area ── */}
-                      {(isOnLivePage ? (isStreaming || liveAnswer) : activePage?.answer) && (
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] font-bold text-violet-400/80 uppercase tracking-widest">🤖 Ghostly AI Solution</span>
-                              {isStreaming && (
-                                <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
-                              )}
-                            </div>
-                            {!isStreaming && (
-                              <CopyButton text={isOnLivePage ? liveAnswer : activePage?.answer || ""} />
-                            )}
+                            <span className="text-[10px] font-bold text-violet-400/80 uppercase tracking-widest">🤖 Ghostly AI Response</span>
+                            <CopyButton text={answer} />
                           </div>
                           <div className="rounded-xl overflow-hidden border border-violet-500/15 shadow-2xl"
                             style={{ background: "rgba(10,10,14,0.75)" }}>
-                            <SolutionCard
-                              content={isOnLivePage ? liveAnswer : (activePage?.answer || "")}
-                              isStreaming={isStreaming}
-                            />
+                            <SolutionCard content={answer} isStreaming={false} />
                           </div>
-                          <div ref={answerEndRef} />
                         </div>
-                      )}
+                      </motion.div>
+                    );
+                  })}
 
-                      {/* Waiting state on live page — clean empty screen */}
-                      {isOnLivePage && !isStreaming && !liveAnswer && (
-                        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-                          <span className="text-3xl">🎙️</span>
-                          <div className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-green-400/60 rounded-full animate-pulse" />
-                            <span className="text-[13px] text-white/25 font-sans">
-                              {liveActive ? "Listening… speak and click Send to AI" : "Click AI Answer to start listening"}
+                  {/* Current response streams at the bottom of the same feed. */}
+                  {(isStreaming || liveAnswer) && (
+                    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-3">
+                      {liveQuestion && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className={`text-[10px] font-bold uppercase tracking-widest ${liveQuestion === "Screen Analysis" ? "text-cyan-400/70" : "text-yellow-400/60"}`}>
+                              {liveQuestion === "Screen Analysis" ? "🖥️ Screen Analysis" : "🎙️ Interviewer"}
                             </span>
+                            {liveQuestion !== "Screen Analysis" && <CopyButton text={liveQuestion} />}
                           </div>
+                          {liveQuestion !== "Screen Analysis" && <div className="text-[13px] text-white/80 leading-relaxed font-sans bg-white/[0.03] rounded-xl px-4 py-3 border border-white/[0.05]">{liveQuestion}</div>}
                         </div>
                       )}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-violet-400/80 uppercase tracking-widest">🤖 Ghostly AI Response</span>
+                            {isStreaming && <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />}
+                          </div>
+                          {!isStreaming && <CopyButton text={liveAnswer} />}
+                        </div>
+                        <div className="rounded-xl overflow-hidden border border-violet-500/15 shadow-2xl" style={{ background: "rgba(10,10,14,0.75)" }}>
+                          <SolutionCard content={liveAnswer} isStreaming={isStreaming} />
+                        </div>
+                      </div>
                     </motion.div>
                   )}
-                </AnimatePresence>
+                  {liveActive && !isStreaming && !liveAnswer && normalQaPairs.length > 0 && (
+                    <div className="flex items-center justify-center gap-2 py-3 text-[12px] text-white/25 font-sans">
+                      <span className="w-1.5 h-1.5 bg-green-400/60 rounded-full animate-pulse" /> Listening…
+                    </div>
+                  )}
+                  <div ref={answerEndRef} />
+                </div>
                 )} {/* end chat conditional */}
               </div>
 

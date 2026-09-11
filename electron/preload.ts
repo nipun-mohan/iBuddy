@@ -35,6 +35,8 @@ contextBridge.exposeInMainWorld("ghostly", {
   // Capture
   captureFullscreen: (): Promise<string> =>
     ipcRenderer.invoke("ghostly:capture-fullscreen"),
+  attachResume: (): Promise<{ name: string; text: string } | null> =>
+    ipcRenderer.invoke("ghostly:attach-resume"),
 
   // Settings persistence
   getSettings: (): Promise<any> => ipcRenderer.invoke("get-settings"),

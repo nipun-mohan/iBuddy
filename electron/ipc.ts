@@ -1,4 +1,6 @@
-import { ipcMain, desktopCapturer } from "electron";
+import { ipcMain, desktopCapturer, dialog } from "electron";
+import { readFile } from "node:fs/promises";
+import { extname, basename } from "node:path";
 import { captureFullScreen } from "./capture";
 import { updateHotkeys, DEFAULT_SHORTCUTS, type ShortcutBindings } from "./hotkeys";
 import Store from "electron-store";
@@ -40,6 +42,29 @@ export function getStoredShortcuts(): ShortcutBindings {
 }
 
 export function registerIpcHandlers(): void {
+  ipcMain.handle("ghostly:attach-resume", async () => {
+    const selected = await dialog.showOpenDialog({
+      title: "Attach resume",
+      properties: ["openFile"],
+      filters: [{ name: "Resume", extensions: ["pdf", "docx", "txt", "md"] }],
+    });
+    if (selected.canceled || !selected.filePaths[0]) return null;
+    const filePath = selected.filePaths[0];
+    const extension = extname(filePath).toLowerCase();
+    const buffer = await readFile(filePath);
+    let text = "";
+    if (extension === ".pdf") {
+      const pdfParse = require("pdf-parse") as (data: Buffer) => Promise<{ text?: string }>;
+      text = (await pdfParse(buffer)).text || "";
+    } else if (extension === ".docx") {
+      const mammoth = require("mammoth") as { extractRawText: (input: { buffer: Buffer }) => Promise<{ value?: string }> };
+      text = (await mammoth.extractRawText({ buffer })).value || "";
+    } else text = buffer.toString("utf8");
+    const cleaned = text.replace(/\u0000/g, "").replace(/\n{3,}/g, "\n\n").trim();
+    if (!cleaned) throw new Error("No readable text was found in this resume.");
+    return { name: basename(filePath), text: cleaned.slice(0, 30000) };
+  });
+
   // User / Auth
   ipcMain.handle("get-user", () => store.get("user") || null);
   ipcMain.handle("save-user", (_event, user: any) => { store.set("user", user); });

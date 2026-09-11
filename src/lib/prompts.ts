@@ -4,6 +4,8 @@ export function buildSessionContext(session: InterviewSession | null): string {
   if (!session) return "";
 
   let ctx = `\n\n---\nINTERVIEW CONTEXT:\n- Company: ${session.companyName}\n- Position: ${session.position}\n- Interview Language: ${session.language}`;
+  if (session.roundName) ctx += `\n- Interview Round: ${session.roundName}`;
+  if (session.programmingLanguage) ctx += `\n- Required Programming Language: ${session.programmingLanguage}`;
 
   const p = session.profile;
   if (p) {

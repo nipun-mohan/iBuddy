@@ -7,8 +7,8 @@ directories:
   output: dist
 publish:
   provider: github
-  owner: Maheshshelke05
-  repo: ghostly-releases
+  owner: nipun-mohan
+  repo: Ghostly-AI
   releaseType: release
 files:
   - "out/**"

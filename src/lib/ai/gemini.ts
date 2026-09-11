@@ -25,6 +25,7 @@ export class GeminiProvider implements AIProvider {
       model,
       apiKey,
       maxTokens = 4096,
+      customInstructions,
     } = options;
 
     // Clean model name
@@ -71,6 +72,7 @@ export class GeminiProvider implements AIProvider {
 
     const body = {
       contents,
+      ...(customInstructions ? { systemInstruction: { parts: [{ text: customInstructions }] } } : {}),
       generationConfig: {
         maxOutputTokens: maxTokens,
         temperature: 0.4,

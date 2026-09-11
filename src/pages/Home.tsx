@@ -9,6 +9,7 @@ import { SettingsPanel } from "../components/SettingsPanel";
 import { SolutionCard } from "../components/SolutionCard";
 import { useInterviewAudio } from "../hooks/useInterviewAudio";
 import { compressScreenshot } from "../lib/utils/imageCompressor";
+import { DEFAULT_ROUND_TEMPLATES } from "../lib/roundTemplates";
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char] || char));
@@ -292,7 +293,14 @@ export const Home: React.FC = () => {
       prompt = buildPrompt(settings.interviewType, settings.language, interviewSession);
     }
 
-    const customInstructions = settings.customInstructions?.trim();
+    const configuredRound = settings.roundTemplates?.find(round => round.id === settings.interviewType)
+      || DEFAULT_ROUND_TEMPLATES.find(round => round.id === settings.interviewType);
+    const roundPrompt = interviewSession?.roundPrompt || configuredRound?.prompt || "";
+    const customInstructions = [
+      `Required programming language for every code sample: ${interviewSession?.programmingLanguage || settings.language}. Never substitute Python unless Python is selected.`,
+      roundPrompt,
+      settings.customInstructions?.trim(),
+    ].filter(Boolean).join("\n\n");
 
     try {
       const provider = getProvider(providerName);
@@ -723,7 +731,11 @@ export const Home: React.FC = () => {
         model: settings.activeModel,
         apiKey: activeKey,
         maxTokens: 2048,
-        customInstructions: settings.customInstructions?.trim(),
+        customInstructions: [
+          `Required programming language for every code sample: ${interviewSession?.programmingLanguage || settings.language}. Never substitute Python unless Python is selected.`,
+          interviewSession?.roundPrompt || settings.roundTemplates?.find(round => round.id === settings.interviewType)?.prompt,
+          settings.customInstructions?.trim(),
+        ].filter(Boolean).join("\n\n"),
       });
 
       let full = "";

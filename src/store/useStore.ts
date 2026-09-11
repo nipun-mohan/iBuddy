@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { ProviderName } from "../lib/ai";
+import { DEFAULT_ROUND_TEMPLATES, type RoundTemplate } from "../lib/roundTemplates";
 
 export interface QAPair {
   question: string;
@@ -82,13 +83,18 @@ export interface InterviewSession {
   language: string;
   description: string;
   profile: CandidateProfile | null;
+  roundId?: string;
+  roundName?: string;
+  roundPrompt?: string;
+  programmingLanguage?: string;
 }
 
 export interface Settings {
   activeProvider: ProviderName;
   activeModel: string;
-  interviewType: "dsa" | "system_design" | "frontend" | "sql" | "behavioral";
-  language: "python" | "javascript" | "typescript" | "java" | "cpp" | "go";
+  interviewType: string;
+  language: string;
+  roundTemplates?: RoundTemplate[];
   apiKeys: Record<string, string>;
   deepgramApiKey: string;
   customInstructions?: string;
@@ -171,6 +177,7 @@ export const useStore = create<GhostlyStore>((set) => ({
     activeModel: "openai/gpt-oss-120b",
     interviewType: "dsa",
     language: "python",
+    roundTemplates: DEFAULT_ROUND_TEMPLATES,
     apiKeys: {
       groq: ENV.groq,
       gemini: ENV.gemini,

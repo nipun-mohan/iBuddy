@@ -169,6 +169,9 @@ function createMainWindow(): BrowserWindow {
     win.focus();
     win.setAlwaysOnTop(true, "screen-saver");
     if (app.isPackaged) applyStealthMode(win);
+    // Restore update checks after launch, delayed so they never block startup or
+    // trigger alongside the macOS permission flow.
+    if (app.isPackaged) setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 5000);
   });
 
   return win;
@@ -417,7 +420,7 @@ if (!gotTheLock) {
       }
     });
 
-    // Updates are checked only when the user presses "Check for updates".
+    // Users can also trigger an immediate check from the home screen.
   });
 
   app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });

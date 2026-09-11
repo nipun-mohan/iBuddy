@@ -16,6 +16,7 @@ const store = new Store({
       activeModel: "gemini-3.5-flash",
       interviewType: "dsa",
       language: "python",
+      roundTemplates: [],
       apiKeys: {
         gemini: "",
         openai: "",
@@ -123,6 +124,7 @@ export function registerIpcHandlers(): void {
   ];
   ipcMain.handle("get-settings", () => {
     const settings = store.get("settings") as any;
+    if (!Array.isArray(settings?.roundTemplates)) settings.roundTemplates = [];
     if (settings?.activeProvider === "gemini" && DEAD_GEMINI_MODELS.includes(settings.activeModel)) {
       settings.activeModel = "gemini-3.5-flash";
       store.set("settings", settings);

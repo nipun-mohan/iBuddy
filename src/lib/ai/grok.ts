@@ -8,13 +8,14 @@ export class GrokProvider implements AIProvider {
   }
 
   async *streamSolution(options: AIRequestOptions): AsyncGenerator<string> {
-    const { base64Image, prompt, messages = [], model, apiKey, maxTokens = 4096 } = options;
+    const { base64Image, prompt, messages = [], model, apiKey, maxTokens = 4096, customInstructions } = options;
 
     const imageUrl = base64Image?.startsWith("data:")
       ? base64Image
       : base64Image ? `data:image/png;base64,${base64Image}` : undefined;
 
     const apiMessages: any[] = messages.map(m => ({ role: m.role, content: m.content }));
+    if (customInstructions) apiMessages.unshift({ role: "system", content: customInstructions });
 
     // All current Grok chat models (4.x+) are vision-capable by default — the
     // "-vision" suffix only existed on the retired grok-2 generation.

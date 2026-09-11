@@ -21,6 +21,7 @@ export class AnthropicProvider implements AIProvider {
       model,
       apiKey,
       maxTokens = 4096,
+      customInstructions,
     } = options;
 
     // CRITICAL FIX: Clean model name - remove all whitespace
@@ -60,6 +61,7 @@ export class AnthropicProvider implements AIProvider {
         stream: false,
         messages: apiMessages,
         temperature: 0.7,
+        ...(customInstructions ? { system: customInstructions } : {}),
       };
 
       console.log("[Anthropic] Calling via Electron proxy");

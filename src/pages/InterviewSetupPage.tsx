@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "../store/useStore";
 import type { CandidateProfile } from "../store/useStore";
+import { DEFAULT_ROUND_TEMPLATES, PROGRAMMING_LANGUAGES, type RoundTemplate } from "../lib/roundTemplates";
 
 /* ── Design tokens ── */
 const GLASS: React.CSSProperties = {
@@ -106,11 +107,15 @@ export const InterviewSetupPage: React.FC = () => {
   const [companyName, setCompanyName] = useState("");
   const [position, setPosition]       = useState("");
   const [language, setLanguage]       = useState("english");
+  const [codeLanguage, setCodeLanguage] = useState(settings.language || "python");
+  const [rounds, setRounds] = useState<RoundTemplate[]>(settings.roundTemplates?.length ? settings.roundTemplates : DEFAULT_ROUND_TEMPLATES);
+  const [selectedRoundId, setSelectedRoundId] = useState(settings.interviewType === "dsa" ? "coding" : settings.interviewType || "general");
+  const [newRoundName, setNewRoundName] = useState("");
   const [autoAI, setAutoAI]           = useState(settings.autoAI ?? true);
   const [customInstructions, setCustomInstructions] = useState(settings.customInstructions ?? "");
   const [langOpen, setLangOpen]       = useState(false);
   const [profile, setProfile]         = useState<CandidateProfile>(savedProfile ?? EMPTY_PROFILE);
-  const [activeTab, setActiveTab]     = useState<"session" | "profile">("session");
+  const [activeTab, setActiveTab]     = useState<"session" | "rounds" | "profile">("session");
 
   React.useEffect(() => {
     window.ghostly.getSavedProfile().then(saved => {
@@ -127,12 +132,15 @@ export const InterviewSetupPage: React.FC = () => {
 
   const handleContinue = async () => {
     if (!isReady) return;
-    updateSettings({ autoAI, customInstructions });
+    const selectedRound = rounds.find(round => round.id === selectedRoundId) || rounds[0];
+    updateSettings({ autoAI, customInstructions, language: codeLanguage, interviewType: selectedRound.id, roundTemplates: rounds });
     if (hasProfile) { setSavedProfile(profile); await window.ghostly.saveProfile(profile).catch(() => {}); }
     setInterviewSession({
       companyName: companyName.trim(), position: position.trim(),
       language, description: customInstructions.trim(),
       profile: hasProfile ? profile : null,
+      roundId: selectedRound.id, roundName: selectedRound.name,
+      roundPrompt: selectedRound.prompt, programmingLanguage: codeLanguage,
     });
     setTimeout(() => window.ghostly.saveSettings(useStore.getState().settings), 50);
     setAppScreen("api-setup");
@@ -140,6 +148,7 @@ export const InterviewSetupPage: React.FC = () => {
 
   const TABS = [
     { id: "session" as const, icon: "🎯", label: "Session" },
+    { id: "rounds" as const, icon: "🧩", label: "Rounds" },
     { id: "profile" as const, icon: "👤", label: `Profile${hasProfile ? " ✓" : ""}` },
   ];
 
@@ -295,6 +304,23 @@ export const InterviewSetupPage: React.FC = () => {
                   </AnimatePresence>
                 </div>
 
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">🧩 Interview Round</label>
+                    <select value={selectedRoundId} onChange={e => setSelectedRoundId(e.target.value)}
+                      className="rounded-xl px-2.5 py-2.5 text-[10px] outline-none text-white/80 bg-[#17171f] border border-white/10">
+                      {rounds.map(round => <option key={round.id} value={round.id}>{round.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">💻 Code Language</label>
+                    <select value={codeLanguage} onChange={e => setCodeLanguage(e.target.value)}
+                      className="rounded-xl px-2.5 py-2.5 text-[10px] outline-none text-white/80 bg-[#17171f] border border-white/10">
+                      {PROGRAMMING_LANGUAGES.map(item => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                  </div>
+                </div>
+
                 {/* Auto AI toggle */}
                 <div
                   className="flex items-center justify-between px-3 py-3 rounded-xl"
@@ -343,6 +369,37 @@ export const InterviewSetupPage: React.FC = () => {
                   label="Custom Instructions"
                   emoji="✏️"
                 />
+              </motion.div>
+            ) : activeTab === "rounds" ? (
+              <motion.div key="rounds" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="px-3 pt-3 pb-3 flex flex-col gap-2.5 max-h-[52vh] overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+                <div className="flex gap-2">
+                  <input value={newRoundName} onChange={e => setNewRoundName(e.target.value)} placeholder="New round name"
+                    className="flex-1 rounded-xl px-3 py-2 text-[10px] outline-none text-white bg-white/[0.04] border border-white/10" />
+                  <button onClick={() => {
+                    const name = newRoundName.trim();
+                    if (!name) return;
+                    const id = `custom-${Date.now()}`;
+                    setRounds(current => [...current, { id, name, prompt: "Lead with the answer. Add instructions for this round here." }]);
+                    setSelectedRoundId(id); setNewRoundName("");
+                  }} className="px-3 rounded-xl text-[10px] font-bold text-violet-300 bg-violet-500/15 border border-violet-500/30">+ Add</button>
+                </div>
+                {rounds.map(round => (
+                  <div key={round.id} className="rounded-xl p-2.5 bg-white/[0.03] border border-white/[0.08]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <input value={round.name} onChange={e => setRounds(items => items.map(item => item.id === round.id ? { ...item, name: e.target.value } : item))}
+                        className="flex-1 bg-transparent text-[11px] font-bold text-white/80 outline-none" />
+                      <button onClick={() => setSelectedRoundId(round.id)} className="text-[9px] text-violet-300">Use</button>
+                      {!round.builtIn && <button onClick={() => {
+                        setRounds(items => items.filter(item => item.id !== round.id));
+                        if (selectedRoundId === round.id) setSelectedRoundId("general");
+                      }} className="text-[9px] text-red-400">Delete</button>}
+                    </div>
+                    <textarea value={round.prompt} rows={7}
+                      onChange={e => setRounds(items => items.map(item => item.id === round.id ? { ...item, prompt: e.target.value } : item))}
+                      className="w-full resize-y rounded-lg p-2 text-[9px] leading-relaxed outline-none text-white/65 bg-black/20 border border-white/[0.06]" />
+                  </div>
+                ))}
               </motion.div>
             ) : (
               <motion.div

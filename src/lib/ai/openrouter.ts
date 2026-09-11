@@ -17,7 +17,7 @@ export class OpenRouterProvider implements AIProvider {
   }
 
   async *streamSolution(options: AIRequestOptions): AsyncGenerator<string> {
-    const { base64Image, prompt, messages = [], model, apiKey, maxTokens = 8192 } = options;
+    const { base64Image, prompt, messages = [], model, apiKey, maxTokens = 8192, customInstructions } = options;
 
     if (!apiKey || !apiKey.trim()) {
       throw new Error("OpenRouter API key missing. Get a free API key at openrouter.ai/keys");
@@ -37,6 +37,7 @@ export class OpenRouterProvider implements AIProvider {
       role: m.role,
       content: typeof m.content === "string" ? m.content : String(m.content),
     }));
+    if (customInstructions) apiMessages.unshift({ role: "system", content: customInstructions });
 
     if (imageUrl) {
       apiMessages.push({

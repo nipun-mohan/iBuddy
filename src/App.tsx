@@ -8,6 +8,7 @@ import { AudioSetupPage } from "./pages/AudioSetupPage";
 import { Home } from "./pages/Home";
 import { UpdateAnimation } from "./components/UpdateAnimation";
 import { SplashScreen } from "./components/SplashScreen";
+import { DEFAULT_ROUND_TEMPLATES } from "./lib/roundTemplates";
 import "./styles/global.css";
 
 type UpdateState = "idle" | "checking" | "available" | "downloading" | "installing" | "ready" | "error";
@@ -74,6 +75,9 @@ const App: React.FC = () => {
         if (savedSettings) {
           const merged = {
             ...savedSettings,
+            roundTemplates: Array.isArray(savedSettings.roundTemplates) && savedSettings.roundTemplates.length
+              ? savedSettings.roundTemplates
+              : DEFAULT_ROUND_TEMPLATES,
             apiKeys: {
               ...savedSettings.apiKeys,
               gemini:    import.meta.env.VITE_GEMINI_API_KEY    || savedSettings.apiKeys?.gemini    || "",

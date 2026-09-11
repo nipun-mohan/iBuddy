@@ -20,12 +20,13 @@ export class GroqProvider implements AIProvider {
   }
 
   async *streamSolution(options: AIRequestOptions): AsyncGenerator<string> {
-    const { base64Image, prompt, messages = [], model, apiKey, maxTokens = 4096 } = options;
+    const { base64Image, prompt, messages = [], model, apiKey, maxTokens = 4096, customInstructions } = options;
 
     const apiMessages: any[] = messages.map((m) => ({
       role: m.role,
       content: typeof m.content === "string" ? m.content : String(m.content),
     }));
+    if (customInstructions) apiMessages.unshift({ role: "system", content: customInstructions });
 
     // Groq has no vision-capable model right now — sending an image_url part to a
     // text-only model is itself a hard API error, so degrade gracefully instead of

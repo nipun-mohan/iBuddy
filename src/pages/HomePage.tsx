@@ -3,13 +3,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Ad, useStore } from "../store/useStore";
 import { InterviewHistoryModal } from "../components/InterviewHistoryModal";
 
+const primaryKey = window.ghostly.platform === "darwin" ? "⌘" : "Ctrl+";
 const SHORTCUTS = [
-  { keys: "Ctrl+E",  label: "Screenshot", color: "rgba(139,92,246,0.15)", border: "rgba(139,92,246,0.3)", textColor: "#a78bfa" },
-  { keys: "Ctrl+0",  label: "Send AI",    color: "rgba(34,197,94,0.1)", border: "rgba(34,197,94,0.25)", textColor: "#4ade80" },
-  { keys: "Ctrl+N",  label: "Next Q",     color: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.25)", textColor: "#60a5fa" },
-  { keys: "Ctrl+B",  label: "Show/Hide",  color: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.22)", textColor: "#fbbf24" },
-  { keys: "Ctrl+G",  label: "Start Over", color: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.2)", textColor: "#f87171" },
-  { keys: "Ctrl+↵",  label: "Ask AI",     color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.28)", textColor: "#c4b5fd" },
+  { keys: `${primaryKey}E`,  label: "Screenshot", color: "rgba(139,92,246,0.15)", border: "rgba(139,92,246,0.3)", textColor: "#a78bfa" },
+  { keys: `${primaryKey}0`,  label: "Send AI",    color: "rgba(34,197,94,0.1)", border: "rgba(34,197,94,0.25)", textColor: "#4ade80" },
+  { keys: `${primaryKey}N`,  label: "Next Q",     color: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.25)", textColor: "#60a5fa" },
+  { keys: `${primaryKey}B`,  label: "Show/Hide",  color: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.22)", textColor: "#fbbf24" },
+  { keys: `${primaryKey}G`,  label: "Start Over", color: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.2)", textColor: "#f87171" },
+  { keys: `${primaryKey}↵`,  label: "Ask AI",     color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.28)", textColor: "#c4b5fd" },
 ];
 
 const escapeHtml = (v: string) =>
@@ -31,7 +32,7 @@ const AdNetworkPlacement: React.FC<{ ad: Ad }> = ({ ad }) => {
 };
 
 export const HomePage: React.FC = () => {
-  const { setAppScreen, user, ads, setUser, setAds } = useStore();
+  const { setAppScreen, user, ads } = useStore();
   const [checkStatus, setCheckStatus] = useState<"idle" | "checking" | "latest">("idle");
   const [startStatus, setStartStatus] = useState<"idle" | "syncing">("idle");
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -62,44 +63,12 @@ export const HomePage: React.FC = () => {
     return () => { if (timer) clearInterval(timer); };
   }, [adGate]);
 
-  const getCachedAds = async () => {
-    const stateAds = useStore.getState().ads;
-    if (stateAds.length > 0) return stateAds;
-    const savedAds = await window.ghostly.getAds().catch(() => []);
-    return Array.isArray(savedAds) ? savedAds : [];
-  };
-
-  const refreshAccount = async () => {
-    if (!user?.idToken) throw new Error("Please login again.");
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/subscription`, {
-        headers: { Authorization: `Bearer ${user.idToken}` },
-      });
-      if (res.status === 401 || res.status === 403) {
-        await window.ghostly.logoutUser(); setUser(null); setAds([]); setAppScreen("login");
-        throw new Error(res.status === 403 ? "Your account has been blocked. Contact support." : "Please login again.");
-      }
-      if (!res.ok) return { latestAds: await getCachedAds() };
-      const data = await res.json();
-      const latestAds = Array.isArray(data.ads) ? data.ads : await getCachedAds();
-      setAds(latestAds); await window.ghostly.saveAds(latestAds);
-      return { latestAds };
-    } catch (error: any) {
-      if (error?.message?.includes("login") || error?.message?.includes("blocked")) throw error;
-      return { latestAds: await getCachedAds() };
-    }
-  };
-
   const handleStartInterview = async () => {
     if (startStatus === "syncing") return;
     setStartStatus("syncing");
-    try {
-      const { latestAds } = await refreshAccount();
-      const latestActiveAd = latestAds.find((a: any) => a.is_active) || null;
-      if (!latestActiveAd) { setGateAd(null); setAppScreen("interview-setup"); return; }
-      setGateAd(latestActiveAd); setAdGate(true); setAdClicked(false);
-    } catch (error: any) { alert(error.message || "Please login again."); }
-    finally { setStartStatus("idle"); }
+    setGateAd(null);
+    setAppScreen("interview-setup");
+    setStartStatus("idle");
   };
 
   const handleContinueAfterAd = () => { setAdGate(false); setGateAd(null); setAppScreen("interview-setup"); };
@@ -121,7 +90,6 @@ export const HomePage: React.FC = () => {
     window.ghostly.checkForUpdates();
     setTimeout(() => setCheckStatus((s) => (s === "checking" ? "latest" : s)), 8000);
   };
-  const handleLogout = async () => { await window.ghostly.logoutUser(); setUser(null); setAds([]); setAppScreen("login"); };
 
   return (
     <div
@@ -507,31 +475,6 @@ export const HomePage: React.FC = () => {
                 </p>
               </div>
             </div>
-            {/* Logout */}
-            <button
-              onClick={handleLogout}
-              title="Logout"
-              className="w-7 h-7 flex items-center justify-center rounded-[9px] transition-all"
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.07)",
-                color: "rgba(255,255,255,0.28)",
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = "rgba(239,68,68,0.15)";
-                e.currentTarget.style.borderColor = "rgba(239,68,68,0.35)";
-                e.currentTarget.style.color = "#f87171";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
-                e.currentTarget.style.color = "rgba(255,255,255,0.28)";
-              }}
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
-              </svg>
-            </button>
           </div>
         </div>
       </motion.div>

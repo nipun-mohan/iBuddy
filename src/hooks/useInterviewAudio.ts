@@ -84,6 +84,7 @@ export function useInterviewAudio() {
   const deepgramApiKey = useStore(
     (s) => s.settings.deepgramApiKey ?? import.meta.env.VITE_DEEPGRAM_API_KEY ?? ""
   );
+  const micDeviceId = useStore((s) => s.settings.micDeviceId || "default");
 
   const addLog = useCallback((msg: string) => {
     // Fix: sanitize log messages — prevent log injection
@@ -152,33 +153,58 @@ export function useInterviewAudio() {
     if (!isModelReady) return addLog("Cannot start: Deepgram key missing.");
     isRecordingRef.current = true;
     if (isMountedRef.current) setIsRecording(true);
-    addLog("Starting audio capture (Zoom/Meet/Teams supported)...");
+    addLog("Starting microphone and system audio capture...");
 
     try {
-      const displayStream = await (navigator.mediaDevices as any).getDisplayMedia({
-        video: true,
+      const permissions = await window.ghostly.getMediaPermissions();
+      if (window.ghostly.platform === "darwin" && permissions.microphone === "not-determined") {
+        await window.ghostly.requestMicrophone();
+      }
+      if (permissions.microphone === "denied" || permissions.microphone === "restricted") {
+        throw new Error("Microphone access is disabled. Enable Ghostly in System Settings → Privacy & Security → Microphone, then restart the app.");
+      }
+      const micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          channelCount: 2,
+          deviceId: micDeviceId === "default" ? undefined : { exact: micDeviceId },
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
         },
       });
+      addLog(`✔ Microphone captured — ${sanitizeText(micStream.getAudioTracks()[0]?.label || "default microphone")}`);
 
-      displayStream.getVideoTracks().forEach((t: MediaStreamTrack) => t.stop());
-
-      const audioTracks = displayStream.getAudioTracks();
-      if (!audioTracks.length) {
-        throw new Error(
-          "No audio track received. Enable 'Share system audio' when prompted."
-        );
+      let displayStream: MediaStream | null = null;
+      const canAttemptSystemAudio = window.ghostly.platform !== "darwin" || permissions.screen !== "denied";
+      try {
+        if (!canAttemptSystemAudio) throw new Error("Screen & System Audio Recording permission is disabled");
+        displayStream = await (navigator.mediaDevices as any).getDisplayMedia({
+          video: true,
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            channelCount: 2,
+          },
+        });
+        displayStream.getVideoTracks().forEach((t: MediaStreamTrack) => t.stop());
+      } catch (displayError) {
+        const detail = displayError instanceof Error ? sanitizeText(displayError.message) : "permission was not granted";
+        addLog(`[WARNING] System audio unavailable (${detail}). Microphone transcription will continue.`);
       }
 
-      const sysStream = new MediaStream(audioTracks);
-      // Fix: store streams separately for reliable cleanup
-      streamsRef.current = [sysStream, displayStream];
-      addLog(`✔ System audio captured — ${sanitizeText(audioTracks[0].label || "loopback")}`);
-      addLog("Tip: keep Zoom/Meet/Teams output on the same Windows default speaker/headset.");
+      const audioTracks = displayStream?.getAudioTracks() || [];
+      const sysStream = audioTracks.length ? new MediaStream(audioTracks) : null;
+      streamsRef.current = [micStream, ...(sysStream ? [sysStream] : []), ...(displayStream ? [displayStream] : [])];
+
+      if (sysStream) {
+        addLog(`✔ System audio captured — ${sanitizeText(audioTracks[0].label || "loopback")}`);
+      } else {
+        addLog("Listening to your microphone only. Enable Screen & System Audio Recording to hear other speakers.");
+      }
+      addLog(window.ghostly.platform === "darwin"
+        ? "Tip: macOS 14.2+ captures system audio natively; approve Screen & System Audio Recording if prompted."
+        : "Tip: keep Zoom/Meet/Teams output on the same Windows default speaker/headset.");
 
       const audioCtx = new window.AudioContext();
       audioCtxRef.current = audioCtx;
@@ -188,6 +214,26 @@ export function useInterviewAudio() {
       const workletUrl = URL.createObjectURL(blob);
       workletUrlRef.current = workletUrl;
       await audioCtx.audioWorklet.addModule(workletUrl);
+
+      /*
+       * Both sources feed the same Web Audio graph. Previously only sysStream
+       * was connected, so the microphone tested successfully in setup but the
+       * user's own speech never reached Deepgram.
+       */
+      const mix = audioCtx.createGain();
+      const micSource = audioCtx.createMediaStreamSource(micStream);
+      const micGain = audioCtx.createGain();
+      micGain.gain.value = 1.8;
+      micSource.connect(micGain);
+      micGain.connect(mix);
+
+      if (sysStream) {
+        const systemSource = audioCtx.createMediaStreamSource(sysStream);
+        const systemGain = audioCtx.createGain();
+        systemGain.gain.value = 1.15;
+        systemSource.connect(systemGain);
+        systemGain.connect(mix);
+      }
 
       const connectWebSocket = () => {
         if (!isMountedRef.current || !isRecordingRef.current) return;
@@ -268,9 +314,8 @@ export function useInterviewAudio() {
 
       connectWebSocket();
 
-      const source = audioCtx.createMediaStreamSource(sysStream);
       const voiceBoost = audioCtx.createGain();
-      voiceBoost.gain.value = 2.6;
+      voiceBoost.gain.value = 1.5;
       const compressor = audioCtx.createDynamicsCompressor();
       compressor.threshold.value = -42;
       compressor.knee.value = 28;
@@ -280,7 +325,7 @@ export function useInterviewAudio() {
       const workletNode = new AudioWorkletNode(audioCtx, "raw-chunker");
       const sink = audioCtx.createGain();
       sink.gain.value = 0;
-      source.connect(voiceBoost);
+      mix.connect(voiceBoost);
       voiceBoost.connect(compressor);
       compressor.connect(workletNode);
       workletNode.connect(sink);
@@ -298,7 +343,7 @@ export function useInterviewAudio() {
         // Fix: drop buffer if ws is closing/closed — prevents memory buildup
       };
 
-      addLog("🎙️ Listening to system audio...");
+      addLog(`🎙️ Listening to ${sysStream ? "microphone + system audio" : "microphone"}...`);
     } catch (err) {
       isRecordingRef.current = false;
       const safeErr = err instanceof Error ? sanitizeText(err.message) : "Unknown error";

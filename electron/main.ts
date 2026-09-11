@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, screen, ipcMain, desktopCapturer, shell, protocol } from "electron";
+import { app, BrowserWindow, Tray, Menu, nativeImage, screen, ipcMain, desktopCapturer, shell, protocol, systemPreferences } from "electron";
 import path from "path";
 import http from "http";
 import { autoUpdater } from "electron-updater";
@@ -100,7 +100,7 @@ function enforceStealthOnWindow(win: BrowserWindow): void {
 function createMainWindow(): BrowserWindow {
   const primary = screen.getPrimaryDisplay().workAreaSize;
 
-  Menu.setApplicationMenu(null);
+  if (process.platform !== "darwin") Menu.setApplicationMenu(null);
 
   const win = new BrowserWindow({
     width: 700,
@@ -201,6 +201,7 @@ function createTray(): Tray {
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAY0lEQVR4nGNgGAXDBTAiC/z//5/h////DIyMjAxMTEwMYPr/fwYGBgYGBkZGRgYmRiADyIYJMDExAeUYGRmgcowgGsgGqWFkZASpYWJiAqthBOrBAKgaGA3igzCQP7xdMwoAAD6OI0GqswYnAAAAAElFTkSuQmCC",
   );
   const t = new Tray(icon);
+  if (process.platform === "darwin") icon.setTemplateImage(true);
   t.setToolTip("Ghostly — Stealth AI Assistant");
   t.setContextMenu(Menu.buildFromTemplate([
     { label: "Show/Hide Ghostly", click: toggleWindowVisibility },
@@ -210,6 +211,28 @@ function createTray(): Tray {
   ]));
   t.on("click", toggleWindowVisibility);
   return t;
+}
+
+function installMacMenu(): void {
+  if (process.platform !== "darwin") return;
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    {
+      label: app.name,
+      submenu: [
+        { role: "about" },
+        { type: "separator" },
+        { label: "Show or Hide Ghostly", accelerator: "Command+B", click: toggleWindowVisibility },
+        { type: "separator" },
+        { role: "hide" },
+        { role: "hideOthers" },
+        { role: "unhide" },
+        { type: "separator" },
+        { role: "quit" },
+      ],
+    },
+    { label: "Edit", submenu: [{ role: "undo" }, { role: "redo" }, { type: "separator" }, { role: "cut" }, { role: "copy" }, { role: "paste" }, { role: "selectAll" }] },
+    { label: "Window", submenu: [{ role: "minimize" }, { role: "zoom" }, { type: "separator" }, { role: "front" }] },
+  ]));
 }
 
 // ── Single instance lock — MUST be before app.whenReady ──────────────────────
@@ -247,6 +270,8 @@ if (!gotTheLock) {
     startAuthServer();
     registerIpcHandlers();
     mainWindow = createMainWindow();
+    installMacMenu();
+    if (process.platform === "darwin") app.dock?.hide();
     tray = createTray();
     registerHotkeys(mainWindow, getStoredShortcuts());
 
@@ -268,18 +293,15 @@ if (!gotTheLock) {
     // resolved screen source is safe to cache and reuse for the rest of the app session.
     mainWindow.webContents.session.setDisplayMediaRequestHandler((_req, cb) => {
       warmScreenSource().then(() => {
-        // audio: "loopback" — captures ALL system audio including Zoom, Meet, Teams
-        // This is the key flag that makes cross-app audio capture work on Windows
+        // Electron 39+ uses CoreAudio Tap on macOS 14.2+ and native loopback on
+        // Windows. The packaged app includes NSAudioCaptureUsageDescription.
         cb(cachedScreenSource ? { video: cachedScreenSource, audio: "loopback" } : {});
       });
     }, { useSystemPicker: false });
 
-    // Pre-warm the screen source now, while the user is very unlikely to already be
-    // mid screen-share (app just launched) — by the time they actually join a call and
-    // enable audio, the handler above should already have a cache hit. The delay lets
-    // the window finish its initial show + first applyStealthMode() from
-    // "ready-to-show" so the two stealth toggles don't race each other.
-    setTimeout(() => warmScreenSource(), 2000);
+    // Do not enumerate capture sources at launch. On macOS that can surface the
+    // Screen Recording permission UI before the user has requested any capture.
+    // The source is resolved lazily on the first explicit audio/capture action.
 
     // IPC handlers
     ipcMain.handle("ghostly:get-pending-auth-token", () => {
@@ -294,6 +316,20 @@ if (!gotTheLock) {
           shell.openExternal(url);
         }
       } catch { /* invalid URL — ignore */ }
+    });
+    ipcMain.handle("ghostly:get-media-permissions", () => ({
+      platform: process.platform,
+      microphone: systemPreferences.getMediaAccessStatus("microphone"),
+      screen: systemPreferences.getMediaAccessStatus("screen"),
+    }));
+    ipcMain.handle("ghostly:request-microphone", async () => {
+      if (process.platform !== "darwin") return true;
+      return systemPreferences.askForMediaAccess("microphone");
+    });
+    ipcMain.on("ghostly:open-privacy-settings", (_event, section: "microphone" | "screen") => {
+      if (process.platform !== "darwin") return;
+      const pane = section === "screen" ? "Privacy_ScreenCapture" : "Privacy_Microphone";
+      shell.openExternal(`x-apple.systempreferences:com.apple.preference.security?${pane}`);
     });
     ipcMain.on("ghostly:enable-mouse", () => mainWindow?.setIgnoreMouseEvents(false));
     ipcMain.on("ghostly:disable-mouse", () => mainWindow?.setIgnoreMouseEvents(false));
@@ -371,10 +407,7 @@ if (!gotTheLock) {
       }
     });
 
-    // Check for updates 3 seconds after app ready
-    if (app.isPackaged) {
-      setTimeout(() => autoUpdater.checkForUpdates(), 3000);
-    }
+    // Updates are checked only when the user presses "Check for updates".
   });
 
   app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });

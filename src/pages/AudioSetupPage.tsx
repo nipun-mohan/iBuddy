@@ -44,6 +44,7 @@ export const AudioSetupPage: React.FC = () => {
     setTesting(true); setTestDone(false); setMicStatus("testing"); setMicError(null);
     setSysStatus("idle"); setMicLevel(0); setBars(Array(16).fill(0));
     try {
+      if (window.ghostly.platform === "darwin") await window.ghostly.requestMicrophone();
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { deviceId: selectedMic === "default" ? undefined : { exact: selectedMic }, echoCancellation: false, noiseSuppression: false },
       });
@@ -75,9 +76,11 @@ export const AudioSetupPage: React.FC = () => {
       const name = err instanceof DOMException ? err.name : "";
       const message =
         name === "NotAllowedError" || name === "PermissionDeniedError"
-          ? "Microphone access is blocked. Open Windows Settings → Privacy & security → Microphone, turn on \"Let apps access your microphone\", then restart Ghostly AI."
+          ? window.ghostly.platform === "darwin"
+            ? "Microphone access is blocked. Open System Settings → Privacy & Security → Microphone, enable Ghostly, then restart the app."
+            : "Microphone access is blocked. Open Windows Settings → Privacy & security → Microphone, turn on \"Let apps access your microphone\", then restart Ghostly AI."
           : name === "NotFoundError" || name === "DevicesNotFoundError"
-            ? "No microphone was found. Plug in a mic/headset and check it's enabled in Windows Sound settings."
+            ? `No microphone was found. Plug in a mic/headset and check it is enabled in ${window.ghostly.platform === "darwin" ? "System Settings → Sound → Input" : "Windows Sound settings"}.`
             : name === "NotReadableError" || name === "TrackStartError"
               ? "Your microphone is being used by another app (Zoom, Teams, Discord, etc). Close it there and try again."
               : `Microphone test failed${name ? ` (${name})` : ""}. Try a different microphone from the list above.`;

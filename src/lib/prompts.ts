@@ -5,10 +5,6 @@ export function buildSessionContext(session: InterviewSession | null): string {
 
   let ctx = `\n\n---\nINTERVIEW CONTEXT:\n- Company: ${session.companyName}\n- Position: ${session.position}\n- Interview Language: ${session.language}`;
 
-  if (session.description) {
-    ctx += `\n- Job Description / Custom Instructions: ${session.description}`;
-  }
-
   const p = session.profile;
   if (p) {
     ctx += `\n\nCANDIDATE PROFILE:`;
@@ -76,7 +72,7 @@ CRITICAL INSTRUCTIONS:
    - If it's a coding problem: Provide approach + pseudocode
    - If unclear: Ask for clarification professionally
 
-2. ANSWER STRUCTURE (150-250 words max):
+2. ANSWER STRUCTURE (40-80 words max):
    - Line 1: Strong hook — show expertise immediately with a confident statement
    - Lines 2-4: Core answer with specific examples, technologies, or real experience
    - Middle: Add 2-3 bullet points if listing items, or explain with concrete examples
@@ -92,7 +88,7 @@ CRITICAL INSTRUCTIONS:
 
 4. SPEED: Generate answer FAST — prioritize clarity and impact over length
 
-Answer now (150-250 words):`;
+Answer immediately (40-80 words):`;
 }
 
 export function buildPrompt(type: string, language: string, session?: InterviewSession | null): string {

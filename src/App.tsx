@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "./store/useStore";
 import { HomePage } from "./pages/HomePage";
-import { LoginPage } from "./pages/LoginPage";
 import { InterviewSetupPage } from "./pages/InterviewSetupPage";
 import { ApiSetupPage } from "./pages/ApiSetupPage";
 import { AudioSetupPage } from "./pages/AudioSetupPage";
@@ -41,7 +40,7 @@ const App: React.FC = () => {
     await window.ghostly.logoutUser();
     useStore.getState().setUser(null);
     useStore.getState().setAds([]);
-    useStore.getState().setAppScreen("login");
+    useStore.getState().setAppScreen("home");
   };
 
   useEffect(() => {
@@ -91,6 +90,8 @@ const App: React.FC = () => {
         if (savedUser) setUser(savedUser);
         if (savedAds) setAds(savedAds);
       } catch { /* first run */ }
+      // The macOS edition has no account gate: always open on the main screen.
+      setAppScreen("home");
       setAppReady(true);
     };
     loadData();
@@ -194,7 +195,6 @@ const App: React.FC = () => {
   }, [user?.idToken]);
 
   if (showSplash || !appReady) return <SplashScreen onComplete={() => setShowSplash(false)} />;
-  if (!user && appScreen !== "login") return <LoginPage />;
 
   const SETUP_STEPS = [
     { key: "interview-setup", label: "Session",  icon: "🎯" },
@@ -402,7 +402,7 @@ const App: React.FC = () => {
   );
 
   if (appScreen === "interview") return <>{showFullScreenAnimation && <UpdateAnimation status={updateState} progress={updatePercent} version={updateVersion} error={updateError} />}{<Home />}{updateBanner}</>;
-  if (appScreen === "login") return <LoginPage />;
+  if (appScreen === "login") return <>{<HomePage />}{updateBanner}</>;
   return <>{showFullScreenAnimation && <UpdateAnimation status={updateState} progress={updatePercent} version={updateVersion} error={updateError} />}{<HomePage />}{updateBanner}</>;
 };
 

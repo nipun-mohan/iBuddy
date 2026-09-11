@@ -1,8 +1,14 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("ghostly", {
+  platform: process.platform,
   // Open URL in system browser (Chrome etc)
   openExternal: (url: string): void => ipcRenderer.send("ghostly:open-external", url),
+  getMediaPermissions: (): Promise<{ platform: string; microphone: string; screen: string }> =>
+    ipcRenderer.invoke("ghostly:get-media-permissions"),
+  requestMicrophone: (): Promise<boolean> => ipcRenderer.invoke("ghostly:request-microphone"),
+  openPrivacySettings: (section: "microphone" | "screen"): void =>
+    ipcRenderer.send("ghostly:open-privacy-settings", section),
 
   // System Audio source fetcher
   getDesktopSources: (): Promise<{id: string, name: string}[]> =>
@@ -142,8 +148,12 @@ contextBridge.exposeInMainWorld("ghostly", {
   // NVIDIA API proxy
   nvidiaApiCall: (apiKey: string, body: any): Promise<{ ok: boolean; status: number; data: string }> =>
     ipcRenderer.invoke("nvidia-api-call", { apiKey, body }),
+  nvidiaListModels: (apiKey: string): Promise<{ ok: boolean; status: number; data: string }> =>
+    ipcRenderer.invoke("nvidia-list-models", { apiKey }),
   nvidiaTestKey: (apiKey: string): Promise<{ ok: boolean; status: number; data: string }> =>
     ipcRenderer.invoke("nvidia-test-key", { apiKey }),
+  openaiTestKey: (apiKey: string): Promise<{ ok: boolean; status: number; data: string }> =>
+    ipcRenderer.invoke("openai-test-key", { apiKey }),
 
   // Anthropic API proxy
   anthropicApiCall: (apiKey: string, body: any): Promise<{ ok: boolean; status: number; data: string }> =>

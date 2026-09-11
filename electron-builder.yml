@@ -1,5 +1,7 @@
 appId: com.ghostly.app
 productName: Ghostly
+npmRebuild: false
+afterPack: build/after-pack.cjs
 directories:
   buildResources: build
   output: dist
@@ -29,15 +31,27 @@ nsis:
   uninstallDisplayName: Ghostly
   createDesktopShortcut: always
 mac:
+  category: public.app-category.productivity
+  icon: icon.png
+  identity: "-"
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
-    - NSCameraUsageDescription: "Application requests access to the device's camera."
-    - NSMicrophoneUsageDescription: "Application requests access to the device's microphone."
-    - NSDocumentsFolderUsageDescription: "Application requests access to the user's Documents folder."
-    - NSDownloadsFolderUsageDescription: "Application requests access to the user's Downloads folder."
+    NSCameraUsageDescription: "Ghostly uses the camera only when a feature explicitly requests it."
+    NSMicrophoneUsageDescription: "Ghostly uses the microphone to transcribe interview audio in real time."
+    NSAudioCaptureUsageDescription: "Ghostly captures system audio so interview questions can be transcribed in real time."
+    NSScreenCaptureUsageDescription: "Ghostly captures the screen when you request AI screen analysis."
+    NSDocumentsFolderUsageDescription: "Ghostly accesses documents only when you select them."
+    NSDownloadsFolderUsageDescription: "Ghostly accesses downloads only when you select them."
   notarize: false
   target:
     - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
       arch:
         - x64
         - arm64

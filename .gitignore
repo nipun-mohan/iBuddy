@@ -6,6 +6,10 @@ out
 
 # Builds
 build/
+!build/
+build/*
+!build/entitlements.mac.plist
+!build/after-pack.cjs
 release/
 *.exe
 *.dmg

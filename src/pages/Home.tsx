@@ -292,6 +292,8 @@ export const Home: React.FC = () => {
       prompt = buildPrompt(settings.interviewType, settings.language, interviewSession);
     }
 
+    const customInstructions = settings.customInstructions?.trim();
+
     try {
       const provider = getProvider(providerName);
       let fullSolution = "";
@@ -305,6 +307,7 @@ export const Home: React.FC = () => {
         apiKey: activeKey,
         mimeType: latestScreenshot?.includes("image/jpeg") ? "image/jpeg" : "image/png",
         maxTokens: transcriptOverride ? 2048 : 4096,
+        customInstructions,
       });
 
       let lastFlush = Date.now();
@@ -482,7 +485,10 @@ export const Home: React.FC = () => {
       addScreenshot(compressedB64);
       const screenPrompt = buildPrompt(settings.interviewType, settings.language);
       runAIStream([compressedB64], undefined, screenPrompt);
-    } catch { setError("Failed to capture screen."); }
+    } catch (err) {
+      const message = err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+':\s*/, "") : "Failed to capture screen.";
+      setError(message || "Failed to capture screen.");
+    }
   }, [runAIStream, setError, settings.interviewType, settings.language, addScreenshot, liveActive, audio, setCurrentSolution, clearScreenshots, setIsStreaming]);
 
   // ── Tab change ──────────────────────────────────────────────────────────────
@@ -717,6 +723,7 @@ export const Home: React.FC = () => {
         model: settings.activeModel,
         apiKey: activeKey,
         maxTokens: 2048,
+        customInstructions: settings.customInstructions?.trim(),
       });
 
       let full = "";

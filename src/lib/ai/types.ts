@@ -11,6 +11,7 @@ export interface AIRequestOptions {
   model: string;
   apiKey: string;
   maxTokens?: number;
+  customInstructions?: string;
 }
 
 export interface AIProvider {

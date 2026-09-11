@@ -200,28 +200,33 @@ export const ApiSetupPage: React.FC = () => {
         // the same Electron main-process proxy the real provider call uses.
         const result = await window.ghostly.nvidiaTestKey(key);
         if (result.ok) {
+          // Persist the exact credential that passed the real inference test.
+          // This prevents a previously saved NVIDIA key from remaining active
+          // when the user tests a newly pasted key but leaves the page another way.
+          setApiKey("nvidia", key);
+          await window.ghostly.saveSettings(useStore.getState().settings);
           setTestStatus(prev => ({ ...prev, nvidia: { status: "valid", message: "NVIDIA Key Valid! 🟢" } }));
         } else {
-          setTestStatus(prev => ({ ...prev, nvidia: { status: "invalid", message: `Invalid Key (HTTP ${result.status})` } }));
+          const detail = result.status === 401
+            ? "Key cannot access NVIDIA serverless inference (HTTP 401)"
+            : result.status === 410
+              ? "NVIDIA retired the test model (HTTP 410); install the latest Ghostly build"
+            : `NVIDIA inference test failed (HTTP ${result.status})`;
+          setTestStatus(prev => ({ ...prev, nvidia: { status: "invalid", message: detail } }));
         }
       } else if (providerId === "openai") {
-        // Real OpenAI test: 1-token chat completion call
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${key}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "gpt-4o",
-            messages: [{ role: "user", content: "hi" }],
-            max_tokens: 1,
-          })
-        });
-        if (res.ok) {
+        const result = await window.ghostly.openaiTestKey(key);
+        if (result.ok) {
+          const selectedModel = selModel.openai || AI_PROVIDERS.find(p => p.id === "openai")!.models[0];
+          setApiKey("openai", key);
+          setActiveProv("openai");
+          updateSettings({ activeProvider: "openai", activeModel: selectedModel });
+          await window.ghostly.saveSettings(useStore.getState().settings);
           setTestStatus(prev => ({ ...prev, openai: { status: "valid", message: "OpenAI Key Valid! 🟣" } }));
         } else {
-          setTestStatus(prev => ({ ...prev, openai: { status: "invalid", message: `Invalid Key (HTTP ${res.status})` } }));
+          const parsed = JSON.parse(result.data || "{}");
+          const message = parsed.error?.message || `OpenAI validation failed (HTTP ${result.status})`;
+          setTestStatus(prev => ({ ...prev, openai: { status: "invalid", message } }));
         }
       } else if (providerId === "anthropic") {
         // Anthropic blocks direct browser calls (no CORS) — go through the same

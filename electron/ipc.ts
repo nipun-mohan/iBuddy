@@ -113,6 +113,14 @@ export function registerIpcHandlers(): void {
   const DEAD_GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite"];
   // Groq shuts these two down 08/16/26 (console.groq.com/docs/deprecations).
   const DEAD_GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
+  const DEAD_NVIDIA_MODELS = [
+    "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+    "meta/llama-3.3-70b-instruct",
+    "nvidia/nemotron-3.5-nano-30b-a3b",
+    "nvidia/nemotron-3.5-lightning-30b-a3b",
+    "openai/gpt-oss-20b",
+    "openai/gpt-oss-120b",
+  ];
   ipcMain.handle("get-settings", () => {
     const settings = store.get("settings") as any;
     if (settings?.activeProvider === "gemini" && DEAD_GEMINI_MODELS.includes(settings.activeModel)) {
@@ -121,6 +129,10 @@ export function registerIpcHandlers(): void {
     }
     if (settings?.activeProvider === "groq" && DEAD_GROQ_MODELS.includes(settings.activeModel)) {
       settings.activeModel = "openai/gpt-oss-120b";
+      store.set("settings", settings);
+    }
+    if (settings?.activeProvider === "nvidia" && DEAD_NVIDIA_MODELS.includes(settings.activeModel)) {
+      settings.activeModel = "meta/muse-glimmer-30b";
       store.set("settings", settings);
     }
     return settings;
@@ -158,6 +170,29 @@ export function registerIpcHandlers(): void {
   });
 
   // NVIDIA API proxy - bypass CORS
+  ipcMain.handle("nvidia-list-models", async (_event, { apiKey }: { apiKey: string }) => {
+    return new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: "integrate.api.nvidia.com",
+        port: 443,
+        path: "/v1/models",
+        method: "GET",
+        headers: { "Authorization": `Bearer ${apiKey.trim()}` },
+      }, (res) => {
+        let data = "";
+        res.on("data", (chunk) => { data += chunk; });
+        res.on("end", () => resolve({
+          ok: !!res.statusCode && res.statusCode >= 200 && res.statusCode < 300,
+          status: res.statusCode || 0,
+          data,
+        }));
+      });
+      req.on("error", reject);
+      req.setTimeout(8000, () => req.destroy(new Error("NVIDIA model catalog timed out")));
+      req.end();
+    });
+  });
+
   ipcMain.handle("nvidia-api-call", async (_event, { apiKey, body }: { apiKey: string; body: any }) => {
     return new Promise((resolve, reject) => {
       const postData = JSON.stringify(body);
@@ -168,7 +203,7 @@ export function registerIpcHandlers(): void {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
+          "Authorization": `Bearer ${apiKey.trim()}`,
           "Content-Length": Buffer.byteLength(postData),
         },
       };
@@ -185,24 +220,42 @@ export function registerIpcHandlers(): void {
         });
       });
 
-      req.on("error", (error) => {
-        reject(error);
+      req.on("error", (error: NodeJS.ErrnoException) => {
+        if (error.code === "ETIMEDOUT") {
+          reject(new Error("NVIDIA connection timed out; trying another endpoint"));
+        } else {
+          reject(error);
+        }
       });
+      const responseTimeout = body?.max_tokens > 200 ? 45000 : 18000;
+      req.setTimeout(responseTimeout, () => req.destroy(new Error(`NVIDIA response timed out after ${responseTimeout / 1000} seconds`)));
 
       req.write(postData);
       req.end();
     });
   });
 
-  // NVIDIA key test — cheap GET, no completion tokens spent, same CORS bypass as above
+  // NVIDIA key test — exercise the same chat-completions endpoint as real
+  // requests. /v1/models can succeed for credentials that are not authorized
+  // for serverless inference, producing a misleading green "valid" result.
   ipcMain.handle("nvidia-test-key", async (_event, { apiKey }: { apiKey: string }) => {
     return new Promise((resolve, reject) => {
+      const postData = JSON.stringify({
+        model: "meta/muse-glimmer-30b",
+        messages: [{ role: "user", content: "Reply OK" }],
+        max_tokens: 1,
+        stream: false,
+      });
       const options = {
         hostname: "integrate.api.nvidia.com",
         port: 443,
-        path: "/v1/models",
-        method: "GET",
-        headers: { "Authorization": `Bearer ${apiKey}` },
+        path: "/v1/chat/completions",
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey.trim()}`,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(postData),
+        },
       };
 
       const req = https.request(options, (res) => {
@@ -218,6 +271,33 @@ export function registerIpcHandlers(): void {
       });
 
       req.on("error", (error) => reject(error));
+      req.setTimeout(20000, () => req.destroy(new Error("NVIDIA key test timed out after 20 seconds")));
+      req.write(postData);
+      req.end();
+    });
+  });
+
+  // Validate OpenAI credentials independently of model access. Testing a chat
+  // completion can mislabel a valid key when the chosen model is unavailable.
+  ipcMain.handle("openai-test-key", async (_event, { apiKey }: { apiKey: string }) => {
+    return new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: "api.openai.com",
+        port: 443,
+        path: "/v1/models",
+        method: "GET",
+        headers: { "Authorization": `Bearer ${apiKey.trim()}` },
+      }, (res) => {
+        let data = "";
+        res.on("data", (chunk) => { data += chunk; });
+        res.on("end", () => resolve({
+          ok: !!res.statusCode && res.statusCode >= 200 && res.statusCode < 300,
+          status: res.statusCode || 0,
+          data,
+        }));
+      });
+      req.on("error", reject);
+      req.setTimeout(12000, () => req.destroy(new Error("OpenAI key validation timed out")));
       req.end();
     });
   });

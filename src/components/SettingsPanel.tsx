@@ -22,7 +22,7 @@ const REMAPPABLE_SHORTCUTS: { label: string; action: string }[] = [
 function formatAccelerator(accelerator: string): string {
   return accelerator
     .split("+")
-    .map((part) => (part === "CommandOrControl" ? "Ctrl" : part === "Return" ? "↵" : part))
+    .map((part) => (part === "CommandOrControl" ? (window.ghostly.platform === "darwin" ? "⌘" : "Ctrl") : part === "Return" ? "↵" : part))
     .join(" + ");
 }
 

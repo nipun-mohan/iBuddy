@@ -13,7 +13,11 @@ interface ImportMeta {
 
 interface Window {
   ghostly: {
+    platform: string;
     openExternal: (url: string) => void;
+    getMediaPermissions: () => Promise<{ platform: string; microphone: string; screen: string }>;
+    requestMicrophone: () => Promise<boolean>;
+    openPrivacySettings: (section: "microphone" | "screen") => void;
     getDesktopSources: () => Promise<{ id: string; name: string }[]>;
     enableMouse: () => void;
     disableMouse: () => void;
@@ -56,7 +60,9 @@ interface Window {
     downloadUpdate: () => void;
     installUpdate: () => void;
     nvidiaApiCall: (apiKey: string, body: any) => Promise<{ ok: boolean; status: number; data: string }>;
+    nvidiaListModels: (apiKey: string) => Promise<{ ok: boolean; status: number; data: string }>;
     nvidiaTestKey: (apiKey: string) => Promise<{ ok: boolean; status: number; data: string }>;
+    openaiTestKey: (apiKey: string) => Promise<{ ok: boolean; status: number; data: string }>;
     anthropicApiCall: (apiKey: string, body: any) => Promise<{ ok: boolean; status: number; data: string }>;
     getShortcuts: () => Promise<Record<string, string>>;
     updateShortcuts: (bindings: Record<string, string>) => Promise<{ ok: boolean; failed: string[] }>;

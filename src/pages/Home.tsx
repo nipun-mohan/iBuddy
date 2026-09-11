@@ -79,7 +79,7 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
   return (
     <button
       onClick={async () => {
-        try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
+        try { await window.ghostly.copyText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
       }}
       className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold transition-all"
       style={copied
@@ -853,6 +853,8 @@ export const Home: React.FC = () => {
           onStop={() => { saveSessionToHistory(); handleRestart(); useStore.getState().setAppScreen("home"); setTimeout(() => window.ghostly.enableMouse(), 50); setTimeout(() => window.ghostly.enableMouse(), 300); }}
           autoAI={autoAI}
           onToggleAutoAI={() => setAutoAI(v => !v)}
+          isMicMuted={audio.isMicMuted}
+          onToggleMicMute={audio.toggleMicMute}
         />
       </div>
 
@@ -1014,7 +1016,7 @@ export const Home: React.FC = () => {
                         </div>
                         <button
                           onClick={() => {
-                            navigator.clipboard.writeText("mahishelke0505@ybl");
+                            window.ghostly.copyText("mahishelke0505@ybl");
                             setCopied(true);
                             setTimeout(() => setCopied(false), 2000);
                           }}

@@ -24,6 +24,9 @@ interface Window {
     hide: () => void;
     show: () => void;
     quit: () => void;
+    copyText: (text: string) => Promise<boolean>;
+    minimize: () => void;
+    toggleMaximize: () => void;
     getVersion: () => string;
     onShow: (cb: () => void) => () => void;
     captureFullscreen: () => Promise<string>;

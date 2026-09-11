@@ -382,7 +382,7 @@ const DetailView: React.FC<{
 
   const copyText = async (text: string, idx: number) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await window.ghostly.copyText(text);
       setCopiedIdx(idx);
       setTimeout(() => setCopiedIdx(null), 2000);
     } catch {}

@@ -73,6 +73,8 @@ export function useInterviewAudio() {
   // Fix: separate refs for each resource — reliable cleanup
   const streamsRef = useRef<MediaStream[]>([]);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const micGainRef = useRef<GainNode | null>(null);
+  const [isMicMuted, setIsMicMuted] = useState(false);
   const workletUrlRef = useRef<string | null>(null);
   // Fix: isMounted guard prevents setState after unmount
   const isRecordingRef = useRef(false);
@@ -141,6 +143,7 @@ export function useInterviewAudio() {
       try { audioCtxRef.current.close(); } catch { /* ignore */ }
       audioCtxRef.current = null;
     }
+    micGainRef.current = null;
     // Revoke blob URL
     if (workletUrlRef.current) {
       try { URL.revokeObjectURL(workletUrlRef.current); } catch { /* ignore */ }
@@ -151,6 +154,7 @@ export function useInterviewAudio() {
 
   const startInterview = async () => {
     if (!isModelReady) return addLog("Cannot start: Deepgram key missing.");
+    setIsMicMuted(false);
     isRecordingRef.current = true;
     if (isMountedRef.current) setIsRecording(true);
     addLog("Starting microphone and system audio capture...");
@@ -224,6 +228,7 @@ export function useInterviewAudio() {
       const micSource = audioCtx.createMediaStreamSource(micStream);
       const micGain = audioCtx.createGain();
       micGain.gain.value = 1.8;
+      micGainRef.current = micGain;
       micSource.connect(micGain);
       micGain.connect(mix);
 
@@ -358,6 +363,7 @@ export function useInterviewAudio() {
     if (isMountedRef.current) {
       setIsRecording(false);
       setLiveText("");
+      setIsMicMuted(false);
     }
     dgAccumulatedRef.current = "";
     addLog("Stopped.");
@@ -365,6 +371,15 @@ export function useInterviewAudio() {
   };
 
   const clearMessages = useCallback(() => { setMessages([]); setLiveText(""); }, []);
+  const toggleMicMute = useCallback(() => {
+    setIsMicMuted((muted) => {
+      const next = !muted;
+      const gain = micGainRef.current;
+      if (gain) gain.gain.setTargetAtTime(next ? 0 : 1.8, gain.context.currentTime, 0.01);
+      addLog(next ? "Microphone muted; interviewer audio remains active." : "Microphone unmuted.");
+      return next;
+    });
+  }, [addLog]);
   const clearLogs = useCallback(() => setLogs([]), []);
   const clearLiveText = useCallback(() => {
     setLiveText("");
@@ -375,6 +390,8 @@ export function useInterviewAudio() {
     messages,
     liveText,
     isRecording,
+    isMicMuted,
+    toggleMicMute,
     logs,
     isModelReady,
     downloadProgress,

@@ -19,7 +19,7 @@ export const SolutionCard: React.FC<SolutionCardProps> = ({
 
   const copyToClipboard = async (text: string, id: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await window.ghostly.copyText(text);
       setCopiedBlock(id);
       setTimeout(() => setCopiedBlock(null), 2000);
     } catch {

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, screen, ipcMain, desktopCapturer, shell, protocol, systemPreferences } from "electron";
+import { app, BrowserWindow, Tray, Menu, nativeImage, screen, ipcMain, desktopCapturer, shell, protocol, systemPreferences, clipboard } from "electron";
 import path from "path";
 import http from "http";
 import { autoUpdater } from "electron-updater";
@@ -356,6 +356,16 @@ if (!gotTheLock) {
       }
     });
     ipcMain.on("ghostly:quit", () => app.quit());
+    ipcMain.handle("ghostly:copy-text", (_event, text: string) => {
+      clipboard.writeText(String(text || ""));
+      return true;
+    });
+    ipcMain.on("ghostly:minimize", () => mainWindow?.minimize());
+    ipcMain.on("ghostly:toggle-maximize", () => {
+      if (!mainWindow) return;
+      if (mainWindow.isMaximized()) mainWindow.unmaximize();
+      else mainWindow.maximize();
+    });
     ipcMain.on("ghostly:get-version", (event) => { event.returnValue = app.getVersion(); });
     ipcMain.on("ghostly:move", (_event, dx: number, dy: number) => {
       if (mainWindow) {

@@ -263,6 +263,15 @@
     -webkit-app-region: drag;
   }
 
+  .drag-region button,
+  .drag-region input,
+  .drag-region select,
+  .drag-region textarea,
+  .drag-region a,
+  .drag-region .no-drag {
+    -webkit-app-region: no-drag;
+  }
+
   .no-drag {
     -webkit-app-region: no-drag;
   }

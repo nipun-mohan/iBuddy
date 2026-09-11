@@ -22,6 +22,9 @@ contextBridge.exposeInMainWorld("ghostly", {
   hide: (): void => ipcRenderer.send("ghostly:hide"),
   show: (): void => ipcRenderer.send("ghostly:show"),
   quit: (): void => ipcRenderer.send("ghostly:quit"),
+  copyText: (text: string): Promise<boolean> => ipcRenderer.invoke("ghostly:copy-text", text),
+  minimize: (): void => ipcRenderer.send("ghostly:minimize"),
+  toggleMaximize: (): void => ipcRenderer.send("ghostly:toggle-maximize"),
   getVersion: (): string => ipcRenderer.sendSync("ghostly:get-version"),
   onShow: (cb: () => void): (() => void) => {
     const listener = (): void => cb();

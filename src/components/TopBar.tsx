@@ -15,6 +15,8 @@ interface TopBarProps {
   onStop: () => void;
   autoAI: boolean;
   onToggleAutoAI: () => void;
+  isMicMuted: boolean;
+  onToggleMicMute: () => void;
 }
 
 const MicIcon = () => (
@@ -55,7 +57,7 @@ const TABS = [
 export const TopBar: React.FC<TopBarProps> = ({
   onOpenSettings, settingsOpen, isLiveActive, onToggleLive, onScreenAnalysis,
   liveText = "", onMicSend, onNextQuestion, showNext = false,
-  activeTab, onTabChange, onStop, autoAI, onToggleAutoAI,
+  activeTab, onTabChange, onStop, autoAI, onToggleAutoAI, isMicMuted, onToggleMicMute,
 }) => {
   const [timer, setTimer] = useState(0);
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
@@ -94,13 +96,12 @@ export const TopBar: React.FC<TopBarProps> = ({
       style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
     >
       <div
-        className="w-full max-w-[960px] flex flex-col pointer-events-auto"
-        style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+        className="w-full max-w-[960px] flex flex-col pointer-events-auto drag-region"
         onMouseEnter={() => window.ghostly.enableMouse()}
       >
         {/* ── Main Bar ── */}
         <div
-          className={`flex items-center h-10 px-2.5 gap-1.5 ${isLiveActive ? "rounded-t-2xl" : "rounded-2xl"}`}
+          className={`drag-region flex items-center h-10 px-2.5 gap-1.5 ${isLiveActive ? "rounded-t-2xl" : "rounded-2xl"}`}
           style={{
             background: "linear-gradient(180deg, rgba(18,18,24,0.99) 0%, rgba(12,12,16,0.99) 100%)",
             backdropFilter: "blur(48px)",
@@ -296,6 +297,26 @@ export const TopBar: React.FC<TopBarProps> = ({
             <svg width="7" height="7" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>
             End
           </button>
+
+          {isLiveActive && (
+            <button
+              onClick={onToggleMicMute}
+              title={isMicMuted ? "Unmute your microphone" : "Mute your voice; keep interviewer audio"}
+              className="no-drag h-7 px-2 rounded-[9px] text-[10px] font-bold transition-all shrink-0"
+              style={{
+                background: isMicMuted ? "rgba(239,68,68,0.18)" : "rgba(255,255,255,0.04)",
+                border: `1px solid ${isMicMuted ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.08)"}`,
+                color: isMicMuted ? "#f87171" : "rgba(255,255,255,0.5)",
+              }}
+            >
+              {isMicMuted ? "🔇 Unmute" : "🎙 Mute"}
+            </button>
+          )}
+
+          <button onClick={() => window.ghostly.minimize()} title="Minimize window"
+            className="no-drag w-7 h-7 rounded-[9px] text-white/40 hover:text-white hover:bg-white/10 transition-all">−</button>
+          <button onClick={() => window.ghostly.toggleMaximize()} title="Expand or restore window"
+            className="no-drag w-7 h-7 rounded-[9px] text-white/40 hover:text-white hover:bg-white/10 transition-all">□</button>
 
 
           {/* ── Close ── */}

@@ -19,7 +19,7 @@ export const SolutionCard: React.FC<SolutionCardProps> = ({
 
   const copyToClipboard = async (text: string, id: string) => {
     try {
-      await window.ghostly.copyText(text);
+      await window.ibuddy.copyText(text);
       setCopiedBlock(id);
       setTimeout(() => setCopiedBlock(null), 2000);
     } catch {
@@ -62,7 +62,7 @@ export const SolutionCard: React.FC<SolutionCardProps> = ({
                 </span>
                 <button
                   onClick={() => copyToClipboard(codeString, blockId)}
-                  className="text-[10px] font-medium text-white/40 hover:text-[#a78bfa] transition-colors px-2 py-1 rounded-lg hover:bg-violet-500/10"
+                  className="text-[10px] font-medium text-white/40 hover:text-[#8ee8dc] transition-colors px-2 py-1 rounded-lg hover:bg-violet-500/10"
                 >
                   {copiedBlock === blockId ? "✓ Copied" : "Copy"}
                 </button>
@@ -89,7 +89,7 @@ export const SolutionCard: React.FC<SolutionCardProps> = ({
         return (
           <code
             className="px-2 py-0.5 rounded-md text-[12px] font-semibold"
-            style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", color: "#c4b5fd", fontFamily: "'JetBrains Mono', monospace", userSelect: "text", WebkitUserSelect: "text" } as React.CSSProperties}
+            style={{ background: "rgba(24,199,181,0.15)", border: "1px solid rgba(24,199,181,0.3)", color: "#b8f3eb", fontFamily: "'JetBrains Mono', monospace", userSelect: "text", WebkitUserSelect: "text" } as React.CSSProperties}
             {...props}
           >
             {children}

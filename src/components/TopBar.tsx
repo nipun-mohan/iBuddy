@@ -48,8 +48,8 @@ const SettingsIcon = () => (
 );
 
 const TABS = [
-  { id: "ai" as const,      label: "AI Answer", Icon: MicIcon,    color: "#8b5cf6", glow: "rgba(139,92,246,0.5)" },
-  { id: "chat" as const,    label: "Chat",      Icon: ChatIcon,   color: "#a78bfa", glow: "rgba(167,139,250,0.45)" },
+  { id: "ai" as const,      label: "AI Answer", Icon: MicIcon,    color: "#18c7b5", glow: "rgba(24,199,181,0.5)" },
+  { id: "chat" as const,    label: "Chat",      Icon: ChatIcon,   color: "#5eead4", glow: "rgba(45,212,191,0.45)" },
   { id: "support" as const, label: "Report",   Icon: null,       color: "#fb923c", glow: "rgba(251,146,60,0.45)" },
 ];
 
@@ -91,7 +91,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     >
       <div
         className="w-full max-w-[960px] flex flex-col pointer-events-auto drag-region"
-        onMouseEnter={() => window.ghostly.enableMouse()}
+        onMouseEnter={() => window.ibuddy.enableMouse()}
       >
         {/* ── Main Bar ── */}
         <div
@@ -106,29 +106,21 @@ export const TopBar: React.FC<TopBarProps> = ({
           {/* ── Brand ── */}
           <div className="flex items-center gap-2 shrink-0 pr-1.5">
             <div
-              className="w-6 h-6 rounded-[8px] flex items-center justify-center text-[12px] shrink-0 relative"
+              className="w-6 h-6 rounded-[8px] flex items-center justify-center overflow-hidden shrink-0 relative"
               style={{
-                background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
-                boxShadow: "0 2px 8px rgba(139,92,246,0.5), inset 0 1px 0 rgba(255,255,255,0.2)",
+                background: "linear-gradient(135deg, #18c7b5 0%, #0fae9f 100%)",
+                boxShadow: "0 2px 8px rgba(24,199,181,0.5), inset 0 1px 0 rgba(255,255,255,0.2)",
               }}
             >
-              👻
+              <img src="./favicon.png" alt="iBuddy" className="w-full h-full object-cover" />
             </div>
             <span
               className="text-[12px] font-black tracking-tight whitespace-nowrap"
               style={{ color: "rgba(255,255,255,0.92)", letterSpacing: "-0.3px" }}
             >
-              GhotlyAI
+              iBuddy
             </span>
           </div>
-
-          {/* Keep Close beside the brand so it never gets clipped on narrow windows. */}
-          <button onClick={() => window.ghostly.quit()} title="Close Ghostly"
-            className="no-drag w-8 h-8 flex items-center justify-center rounded-[9px] transition-all shrink-0 text-red-300 bg-red-500/15 border border-red-500/35 hover:bg-red-500/30 hover:text-white">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
 
           <button onClick={onScreenAnalysis} disabled={!isLiveActive}
             title={isLiveActive ? "Capture and analyze the screen in AI Responses" : "Start AI Answer before analyzing the screen"}
@@ -321,9 +313,9 @@ export const TopBar: React.FC<TopBarProps> = ({
             </button>
           )}
 
-          <button onClick={() => window.ghostly.minimize()} title="Minimize window"
+          <button onClick={() => window.ibuddy.minimize()} title="Minimize window"
             className="no-drag w-7 h-7 rounded-[9px] text-white/40 hover:text-white hover:bg-white/10 transition-all">−</button>
-          <button onClick={() => window.ghostly.toggleMaximize()} title="Expand or restore window"
+          <button onClick={() => window.ibuddy.toggleMaximize()} title="Expand or restore window"
             className="no-drag w-7 h-7 rounded-[9px] text-white/40 hover:text-white hover:bg-white/10 transition-all">□</button>
 
 
@@ -395,13 +387,13 @@ export const TopBar: React.FC<TopBarProps> = ({
                   onClick={onMicSend}
                   className="flex items-center gap-1 px-2.5 h-6 rounded-[8px] text-[9px] font-bold whitespace-nowrap transition-all duration-150"
                   style={{
-                    background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                    background: "linear-gradient(135deg, #18c7b5, #0fae9f)",
                     color: "#fff",
-                    boxShadow: "0 2px 8px rgba(139,92,246,0.45)",
-                    border: "1px solid rgba(139,92,246,0.3)",
+                    boxShadow: "0 2px 8px rgba(24,199,181,0.45)",
+                    border: "1px solid rgba(24,199,181,0.3)",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 3px 14px rgba(139,92,246,0.6)"; e.currentTarget.style.transform = "translateY(-0.5px)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(139,92,246,0.45)"; e.currentTarget.style.transform = "none"; }}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 3px 14px rgba(24,199,181,0.6)"; e.currentTarget.style.transform = "translateY(-0.5px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(24,199,181,0.45)"; e.currentTarget.style.transform = "none"; }}
                 >
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>

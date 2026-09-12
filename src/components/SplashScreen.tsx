@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState<"loading" | "ready">("loading");
-  const version = typeof window !== "undefined" && (window as any).ghostly?.getVersion?.()
-    ? (window as any).ghostly.getVersion()
+  const version = typeof window !== "undefined" && (window as any).ibuddy?.getVersion?.()
+    ? (window as any).ibuddy.getVersion()
     : "3.3.5";
 
   useEffect(() => {
@@ -46,24 +46,24 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: "radial-gradient(ellipse 60% 50% at 50% 20%, rgba(139,92,246,0.12) 0%, transparent 70%)",
+            background: "radial-gradient(ellipse 60% 50% at 50% 20%, rgba(24,199,181,0.12) 0%, transparent 70%)",
           }}
         />
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: "radial-gradient(ellipse 40% 30% at 80% 80%, rgba(99,102,241,0.07) 0%, transparent 60%)",
+            background: "radial-gradient(ellipse 40% 30% at 80% 80%, rgba(14,165,164,0.07) 0%, transparent 60%)",
           }}
         />
 
         {/* ── Floating orbs ── */}
         {[
-          { size: 3, x: "15%", y: "20%", delay: 0, color: "rgba(139,92,246,0.5)" },
-          { size: 2, x: "80%", y: "15%", delay: 0.6, color: "rgba(167,139,250,0.4)" },
-          { size: 4, x: "10%", y: "70%", delay: 1.2, color: "rgba(99,102,241,0.35)" },
-          { size: 2.5, x: "88%", y: "65%", delay: 0.3, color: "rgba(196,181,253,0.3)" },
-          { size: 1.5, x: "50%", y: "85%", delay: 0.9, color: "rgba(139,92,246,0.4)" },
-          { size: 3, x: "25%", y: "50%", delay: 1.5, color: "rgba(167,139,250,0.25)" },
+          { size: 3, x: "15%", y: "20%", delay: 0, color: "rgba(24,199,181,0.5)" },
+          { size: 2, x: "80%", y: "15%", delay: 0.6, color: "rgba(142,232,220,0.4)" },
+          { size: 4, x: "10%", y: "70%", delay: 1.2, color: "rgba(14,165,164,0.35)" },
+          { size: 2.5, x: "88%", y: "65%", delay: 0.3, color: "rgba(184,243,235,0.3)" },
+          { size: 1.5, x: "50%", y: "85%", delay: 0.9, color: "rgba(24,199,181,0.4)" },
+          { size: 3, x: "25%", y: "50%", delay: 1.5, color: "rgba(142,232,220,0.25)" },
         ].map((orb, i) => (
           <motion.div
             key={i}
@@ -100,7 +100,7 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
               style={{
                 width: "160px",
                 height: "160px",
-                background: "radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)",
+                background: "radial-gradient(circle, rgba(24,199,181,0.2) 0%, transparent 70%)",
                 filter: "blur(20px)",
               }}
               animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.9, 0.5] }}
@@ -114,19 +114,19 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
               transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
               className="relative w-32 h-32 rounded-[32px] flex items-center justify-center"
               style={{
-                background: "linear-gradient(135deg, rgba(139,92,246,0.18) 0%, rgba(99,102,241,0.12) 100%)",
-                border: "1.5px solid rgba(139,92,246,0.4)",
-                boxShadow: "0 0 60px rgba(139,92,246,0.3), 0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)",
+                background: "linear-gradient(135deg, rgba(24,199,181,0.18) 0%, rgba(14,165,164,0.12) 100%)",
+                border: "1.5px solid rgba(24,199,181,0.4)",
+                boxShadow: "0 0 60px rgba(24,199,181,0.3), 0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)",
                 backdropFilter: "blur(20px)",
               }}
             >
-              <motion.div
-                animate={{ y: [0, -4, 0], rotate: [0, 3, -3, 0] }}
+              <motion.img
+                src="./favicon.png"
+                alt="iBuddy"
+                animate={{ y: [0, -4, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                style={{ fontSize: "64px", lineHeight: 1 }}
-              >
-                👻
-              </motion.div>
+                className="w-full h-full object-cover rounded-[30px]"
+              />
 
               {/* Live status dot */}
               <motion.div
@@ -153,16 +153,16 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
               <h1
                 className="text-5xl font-black mb-2 tracking-tight"
                 style={{
-                  background: "linear-gradient(135deg, #c4b5fd 0%, #a78bfa 40%, #8b5cf6 100%)",
+                  background: "linear-gradient(135deg, #b8f3eb 0%, #8ee8dc 40%, #18c7b5 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
                 }}
               >
-                Ghotly AI
+                iBuddy
               </h1>
               <p className="text-base font-medium" style={{ color: "rgba(255,255,255,0.38)" }}>
-                Stealth AI Copilot for Interviews
+                Your Real-time Interview Copilot
               </p>
             </motion.div>
           </div>
@@ -183,8 +183,8 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
                 className="h-full rounded-full relative overflow-hidden"
                 style={{
                   width: `${progress}%`,
-                  background: "linear-gradient(90deg, #7c3aed, #8b5cf6, #a78bfa)",
-                  boxShadow: "0 0 16px rgba(139,92,246,0.6), 0 0 6px rgba(167,139,250,0.4)",
+                  background: "linear-gradient(90deg, #0fae9f, #18c7b5, #8ee8dc)",
+                  boxShadow: "0 0 16px rgba(24,199,181,0.6), 0 0 6px rgba(142,232,220,0.4)",
                   transition: "width 0.1s ease",
                 }}
               >
@@ -205,13 +205,13 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="text-xs font-medium"
-                style={{ color: phase === "ready" ? "#a78bfa" : "rgba(255,255,255,0.35)" }}
+                style={{ color: phase === "ready" ? "#8ee8dc" : "rgba(255,255,255,0.35)" }}
               >
                 {phaseText}
               </motion.span>
               <span
                 className="text-xs font-mono font-bold tabular-nums"
-                style={{ color: "rgba(139,92,246,0.7)" }}
+                style={{ color: "rgba(24,199,181,0.7)" }}
               >
                 {Math.round(progress)}%
               </span>
@@ -225,12 +225,12 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
             transition={{ delay: 0.6 }}
             className="flex items-center gap-2 px-3 py-1.5 rounded-full"
             style={{
-              background: "rgba(139,92,246,0.08)",
-              border: "1px solid rgba(139,92,246,0.2)",
+              background: "rgba(24,199,181,0.08)",
+              border: "1px solid rgba(24,199,181,0.2)",
             }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-400" style={{ boxShadow: "0 0 6px rgba(167,139,250,0.8)" }} />
-            <span className="text-xs font-bold" style={{ color: "rgba(167,139,250,0.7)" }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-400" style={{ boxShadow: "0 0 6px rgba(142,232,220,0.8)" }} />
+            <span className="text-xs font-bold" style={{ color: "rgba(142,232,220,0.7)" }}>
               v{version}
             </span>
             <span className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>

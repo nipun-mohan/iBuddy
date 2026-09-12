@@ -22,7 +22,7 @@ const REMAPPABLE_SHORTCUTS: { label: string; action: string }[] = [
 function formatAccelerator(accelerator: string): string {
   return accelerator
     .split("+")
-    .map((part) => (part === "CommandOrControl" ? (window.ghostly.platform === "darwin" ? "⌘" : "Ctrl") : part === "Return" ? "↵" : part))
+    .map((part) => (part === "CommandOrControl" ? (window.ibuddy.platform === "darwin" ? "⌘" : "Ctrl") : part === "Return" ? "↵" : part))
     .join(" + ");
 }
 
@@ -62,7 +62,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   const [shortcutError, setShortcutError] = useState<string | null>(null);
 
   useEffect(() => {
-    window.ghostly.getShortcuts().then(setShortcuts);
+    window.ibuddy.getShortcuts().then(setShortcuts);
   }, []);
 
   useEffect(() => {
@@ -83,7 +83,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
       }
       setShortcutError(null);
       const next = { ...shortcuts, [action]: accelerator };
-      window.ghostly.updateShortcuts(next).then((result) => {
+      window.ibuddy.updateShortcuts(next).then((result) => {
         if (result.ok) {
           setShortcuts(next);
         } else {
@@ -96,7 +96,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   }, [recordingAction, shortcuts]);
 
   const handleResetShortcuts = () => {
-    window.ghostly.resetShortcuts().then(() => window.ghostly.getShortcuts().then(setShortcuts));
+    window.ibuddy.resetShortcuts().then(() => window.ibuddy.getShortcuts().then(setShortcuts));
   };
   const [localKeys, setLocalKeys] = useState<Record<string, string>>(() => {
     const k: Record<string, string> = { deepgram: settings.deepgramApiKey || "" };
@@ -111,17 +111,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
     } else {
       setApiKey(id, value.trim());
     }
-    setTimeout(() => window.ghostly.saveSettings(useStore.getState().settings), 200);
+    setTimeout(() => window.ibuddy.saveSettings(useStore.getState().settings), 200);
   };
 
   useEffect(() => {
-    window.ghostly.enableMouse();
-    const iv = setInterval(() => window.ghostly.enableMouse(), 200);
-    return () => { clearInterval(iv); window.ghostly.enableMouse(); };
+    window.ibuddy.enableMouse();
+    const iv = setInterval(() => window.ibuddy.enableMouse(), 200);
+    return () => { clearInterval(iv); window.ibuddy.enableMouse(); };
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => window.ghostly.saveSettings(settings), 500);
+    const t = setTimeout(() => window.ibuddy.saveSettings(settings), 500);
     return () => clearTimeout(t);
   }, [settings]);
 
@@ -135,7 +135,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         className="rounded-[22px] w-[320px] max-h-[72vh] overflow-y-auto flex flex-col shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: "rgba(13,13,20,0.96)",
+          background: "rgba(8,19,31,0.96)",
           backdropFilter: "blur(32px)",
           WebkitBackdropFilter: "blur(32px)",
           border: "1px solid rgba(255,255,255,0.09)",
@@ -145,7 +145,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         }}
       >
         {/* Violet accent top bar */}
-        <div className="h-0.5 w-full shrink-0" style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.7), rgba(99,102,241,0.5), transparent)" }} />
+        <div className="h-0.5 w-full shrink-0" style={{ background: "linear-gradient(90deg, transparent, rgba(24,199,181,0.7), rgba(14,165,164,0.5), transparent)" }} />
 
         <div className="p-5 flex flex-col gap-4">
           {/* Header */}
@@ -155,19 +155,19 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
               <span className="text-[14px] font-black tracking-tight" style={{ color: "rgba(255,255,255,0.9)" }}>Settings</span>
             </div>
             <button onClick={onClose} title="Close settings"
-              className="w-9 h-9 flex items-center justify-center rounded-xl text-[14px] font-black transition-all"
-              style={{ background: "rgba(239,68,68,0.16)", border: "1px solid rgba(248,113,113,0.4)", color: "#fca5a5" }}
+              className="ibuddy-close no-drag w-9 h-9 flex items-center justify-center text-[14px] font-black transition-all"
+              style={{ background: "#dc2626", border: "1px solid #fca5a5", color: "#ffffff", boxShadow: "0 3px 12px rgba(220,38,38,0.55)" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.15)"; e.currentTarget.style.color = "#f87171"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.16)"; e.currentTarget.style.color = "#fca5a5"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.4)"; }}>
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#dc2626"; e.currentTarget.style.color = "#ffffff"; e.currentTarget.style.borderColor = "#fca5a5"; }}>
               ✕
             </button>
           </div>
 
           {/* Active Provider Info */}
           <div className="px-3 py-2.5 rounded-[14px] flex items-center justify-between"
-            style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.25)" }}>
+            style={{ background: "rgba(24,199,181,0.1)", border: "1px solid rgba(24,199,181,0.25)" }}>
             <div>
-              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: "rgba(167,139,250,0.7)" }}>Active AI Provider</p>
+              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: "rgba(142,232,220,0.7)" }}>Active AI Provider</p>
               <p className="text-[13px] font-extrabold mt-0.5 capitalize" style={{ color: "rgba(255,255,255,0.9)" }}>{settings.activeProvider}</p>
             </div>
             <span className="text-[20px]">🤖</span>
@@ -177,7 +177,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
           <div className="p-3 rounded-[14px]" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
             <div className="flex items-center justify-between mb-2.5">
               <span className="text-[11px] font-semibold" style={{ color: "rgba(255,255,255,0.6)" }}>Window Opacity</span>
-              <span className="text-[11px] font-bold font-mono" style={{ color: "#a78bfa" }}>
+              <span className="text-[11px] font-bold font-mono" style={{ color: "#8ee8dc" }}>
                 {Math.round((settings.opacity ?? 1) * 100)}%
               </span>
             </div>
@@ -187,10 +187,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
               onChange={(e) => {
                 const v = parseInt(e.target.value) / 100;
                 updateSettings({ opacity: v });
-                window.ghostly.setOpacity(v);
+                window.ibuddy.setOpacity(v);
               }}
               className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-              style={{ accentColor: "#8b5cf6" }}
+              style={{ accentColor: "#18c7b5" }}
             />
           </div>
 
@@ -215,7 +215,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                 const isRecording = recordingAction === s.action;
                 return (
                   <div key={s.action} className="flex items-center justify-between py-1.5 px-2 rounded-lg transition-all"
-                    style={{ background: isRecording ? "rgba(139,92,246,0.1)" : "transparent" }}
+                    style={{ background: isRecording ? "rgba(24,199,181,0.1)" : "transparent" }}
                     onMouseEnter={(e) => { if (!isRecording) (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.04)"; }}
                     onMouseLeave={(e) => { if (!isRecording) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}>
                     <span className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>{s.label}</span>
@@ -223,9 +223,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                       onClick={() => { setShortcutError(null); setRecordingAction(isRecording ? null : s.action); }}
                       className="px-2 py-0.5 rounded-md text-[9px] font-bold font-mono transition-all"
                       style={{
-                        background: isRecording ? "rgba(139,92,246,0.25)" : "rgba(139,92,246,0.12)",
-                        border: `1px solid ${isRecording ? "rgba(139,92,246,0.6)" : "rgba(139,92,246,0.25)"}`,
-                        color: "#a78bfa",
+                        background: isRecording ? "rgba(24,199,181,0.25)" : "rgba(24,199,181,0.12)",
+                        border: `1px solid ${isRecording ? "rgba(24,199,181,0.6)" : "rgba(24,199,181,0.25)"}`,
+                        color: "#8ee8dc",
                       }}>
                       {isRecording ? "Press keys… (Esc to cancel)" : formatAccelerator(shortcuts[s.action] || "")}
                     </button>
@@ -235,7 +235,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
               <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ opacity: 0.5 }}>
                 <span className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>Move Window</span>
                 <kbd className="px-1.5 py-0.5 rounded-md text-[9px] font-bold font-mono"
-                  style={{ background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.25)", color: "#a78bfa" }}>
+                  style={{ background: "rgba(24,199,181,0.12)", border: "1px solid rgba(24,199,181,0.25)", color: "#8ee8dc" }}>
                   Ctrl + ↑↓←→
                 </kbd>
               </div>
@@ -252,7 +252,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             <button onClick={() => setShowDiagnostics(true)}
               className="w-full py-2.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(139,92,246,0.1)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.25)"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(24,199,181,0.1)"; e.currentTarget.style.borderColor = "rgba(24,199,181,0.25)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>
               🎙️ Run Audio & Deepgram Test
             </button>
@@ -270,10 +270,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-semibold" style={{ color: "rgba(255,255,255,0.5)" }}>🎙️ Deepgram</span>
-                  <button onClick={() => window.ghostly.openExternal("https://console.deepgram.com/signup")}
-                    className="text-[9px] font-bold transition-colors" style={{ color: "rgba(139,92,246,0.7)" }}
-                    onMouseEnter={e => { e.currentTarget.style.color = "#a78bfa"; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = "rgba(139,92,246,0.7)"; }}>
+                  <button onClick={() => window.ibuddy.openExternal("https://console.deepgram.com/signup")}
+                    className="text-[9px] font-bold transition-colors" style={{ color: "rgba(24,199,181,0.7)" }}
+                    onMouseEnter={e => { e.currentTarget.style.color = "#8ee8dc"; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = "rgba(24,199,181,0.7)"; }}>
                     Get Key ↗
                   </button>
                 </div>
@@ -285,7 +285,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                     placeholder="Deepgram API key…"
                     className="w-full rounded-xl px-3 pr-8 py-2 text-[11px] font-mono focus:outline-none transition-all"
                     style={{ border: "1px solid rgba(255,255,255,0.09)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.8)" }}
-                    onFocus={e => { e.currentTarget.style.borderColor = "rgba(139,92,246,0.45)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(139,92,246,0.1)"; }}
+                    onFocus={e => { e.currentTarget.style.borderColor = "rgba(24,199,181,0.45)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(24,199,181,0.1)"; }}
                     onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)"; e.currentTarget.style.boxShadow = "none"; }}
                   />
                   <button onClick={() => setShowKeys(s => ({ ...s, deepgram: !s["deepgram"] }))}
@@ -299,10 +299,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                 <div key={p.id} className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-semibold" style={{ color: "rgba(255,255,255,0.5)" }}>{p.label}</span>
-                    <button onClick={() => window.ghostly.openExternal(p.url)}
-                      className="text-[9px] font-bold transition-colors" style={{ color: "rgba(139,92,246,0.7)" }}
-                      onMouseEnter={e => { e.currentTarget.style.color = "#a78bfa"; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = "rgba(139,92,246,0.7)"; }}>
+                    <button onClick={() => window.ibuddy.openExternal(p.url)}
+                      className="text-[9px] font-bold transition-colors" style={{ color: "rgba(24,199,181,0.7)" }}
+                      onMouseEnter={e => { e.currentTarget.style.color = "#8ee8dc"; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = "rgba(24,199,181,0.7)"; }}>
                       Get Key ↗
                     </button>
                   </div>
@@ -314,7 +314,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                       placeholder={p.ph}
                       className="w-full rounded-xl px-3 pr-8 py-2 text-[11px] font-mono focus:outline-none transition-all"
                       style={{ border: "1px solid rgba(255,255,255,0.09)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.8)" }}
-                      onFocus={e => { e.currentTarget.style.borderColor = "rgba(139,92,246,0.45)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(139,92,246,0.1)"; }}
+                      onFocus={e => { e.currentTarget.style.borderColor = "rgba(24,199,181,0.45)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(24,199,181,0.1)"; }}
                       onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)"; e.currentTarget.style.boxShadow = "none"; }}
                     />
                     <button onClick={() => setShowKeys(s => ({ ...s, [p.id]: !s[p.id] }))}
@@ -345,23 +345,23 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                       key={m.id}
                       onClick={() => {
                         updateSettings({ activeProvider: "openrouter", activeModel: m.id });
-                        setTimeout(() => window.ghostly.saveSettings(useStore.getState().settings), 200);
+                        setTimeout(() => window.ibuddy.saveSettings(useStore.getState().settings), 200);
                       }}
                       className="flex items-center justify-between px-3 py-2.5 rounded-[11px] text-left transition-all"
                       style={{
-                        background: isActive ? "rgba(139,92,246,0.12)" : "rgba(255,255,255,0.04)",
-                        border: `1px solid ${isActive ? "rgba(139,92,246,0.35)" : "rgba(255,255,255,0.07)"}`,
-                        boxShadow: isActive ? "0 0 12px rgba(139,92,246,0.15)" : "none",
+                        background: isActive ? "rgba(24,199,181,0.12)" : "rgba(255,255,255,0.04)",
+                        border: `1px solid ${isActive ? "rgba(24,199,181,0.35)" : "rgba(255,255,255,0.07)"}`,
+                        boxShadow: isActive ? "0 0 12px rgba(24,199,181,0.15)" : "none",
                       }}
                       onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
                       onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-bold leading-tight" style={{ color: isActive ? "#c4b5fd" : "rgba(255,255,255,0.75)" }}>{m.name}</p>
+                        <p className="text-[11px] font-bold leading-tight" style={{ color: isActive ? "#b8f3eb" : "rgba(255,255,255,0.75)" }}>{m.name}</p>
                         <p className="text-[9px] mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>{m.desc} · Free</p>
                       </div>
                       {isActive ? (
-                        <span className="shrink-0 text-[9px] font-extrabold ml-2" style={{ color: "#a78bfa" }}>✓ Active</span>
+                        <span className="shrink-0 text-[9px] font-extrabold ml-2" style={{ color: "#8ee8dc" }}>✓ Active</span>
                       ) : (
                         <span className="shrink-0 text-[9px] ml-2" style={{ color: "rgba(255,255,255,0.2)" }}>Select</span>
                       )}

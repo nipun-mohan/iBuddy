@@ -1,6 +1,6 @@
-# 👻 Ghostly AI v3.3.5 — Stealth Technical Interview Assistant
+# iBuddy v4.0.9 — Real-Time Interview Copilot
 
-Ghostly AI is an ultra-fast, stealthy AI assistant engineered specifically for live technical interviews, DSA coding rounds, and system design evaluations. It operates discreetly on your screen, featuring real-time audio transcription, instant screen capture analysis, and deep resume context injection.
+iBuddy is an ultra-fast, stealthy AI assistant engineered specifically for live technical interviews, DSA coding rounds, and system design evaluations. It operates discreetly on your screen, featuring real-time audio transcription, instant screen capture analysis, and deep resume context injection.
 
 ---
 
@@ -52,7 +52,7 @@ Version 3.3.4 is a major performance, reliability, and UX update focused on sub-
 
 ## ⌨️ Desktop App Keyboard Shortcuts & Hotkeys
 
-> 📄 Full reference: **[SHORTCUTS.md](SHORTCUTS.md)** · Also published on the website: **[ghotlyai.in/shortcuts](https://www.ghotlyai.in/shortcuts/)**
+> Full reference: **[SHORTCUTS.md](SHORTCUTS.md)**
 
 Use these keyboard shortcuts for 100% stealthy, hands-free operation during your interview:
 
@@ -69,7 +69,7 @@ Use these keyboard shortcuts for 100% stealthy, hands-free operation during your
 
 ---
 
-## 🎯 How to Use Ghostly AI Features
+## 🎯 How to Use iBuddy Features
 
 ### 1. 🎙️ AI Answer Mode (Live Audio Transcription)
 1. Click **`AI Answer`** on TopBar or toggle live mode.
@@ -80,7 +80,7 @@ Use these keyboard shortcuts for 100% stealthy, hands-free operation during your
 
 ### 2. 📸 Screen Analysis Mode
 1. Click **`Screen`** tab or press **`Ctrl + E`**.
-2. Ghostly AI captures your full screen, compresses it to 800px JPEG, and extracts code/DSA problems.
+2. iBuddy captures your full screen, compresses it to 800px JPEG, and extracts code/DSA problems.
 3. Receives an ultra-fast, syntax-highlighted solution on a single clean page in **under 1 second**.
 
 ### 3. 💬 Chat Mode
@@ -116,4 +116,4 @@ npm run dist
 
 ---
 
-*Made with ❤️ by Ghostly AI Team — Empowering Candidates Worldwide.*
+*Made by the iBuddy team.*

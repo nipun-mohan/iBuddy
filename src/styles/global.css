@@ -5,8 +5,8 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════════
-   GHOSTLY AI — Premium Design System v2.0
-   Accent: Purple/Violet #8b5cf6
+   iBuddy — Companion Design System v1.0
+   Primary: supportive teal #18c7b5 · Surface: deep navy #081b2c
    ═══════════════════════════════════════════════════════════════════ */
 
 @layer base {
@@ -39,12 +39,12 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.25);
+    background: rgba(24,199,181, 0.25);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(139, 92, 246, 0.45);
+    background: rgba(24,199,181, 0.45);
   }
 }
 
@@ -52,7 +52,7 @@
 
   /* ── Glass Card (main surface) ── */
   .glass-card {
-    background: rgba(13, 13, 20, 0.88);
+    background: rgba(8,19,31, 0.88);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -80,24 +80,24 @@
   /* ── Primary Button (violet gradient) ── */
   .btn-primary {
     @apply px-4 py-2.5 rounded-xl font-bold text-sm transition-all duration-200;
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #18c7b5 0%, #0fae9f 100%);
     color: #fff;
     border: none;
     box-shadow:
-      0 4px 16px rgba(139, 92, 246, 0.4),
+      0 4px 16px rgba(24,199,181, 0.4),
       0 1px 0 rgba(255, 255, 255, 0.15) inset;
   }
 
   .btn-primary:hover {
     box-shadow:
-      0 6px 24px rgba(139, 92, 246, 0.55),
+      0 6px 24px rgba(24,199,181, 0.55),
       0 1px 0 rgba(255, 255, 255, 0.15) inset;
     transform: translateY(-1px);
   }
 
   .btn-primary:active {
     transform: translateY(0px) scale(0.98);
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35);
+    box-shadow: 0 2px 8px rgba(24,199,181, 0.35);
   }
 
   /* ── Ghost Button ── */
@@ -143,9 +143,9 @@
   }
 
   .input-field:focus {
-    border-color: rgba(139, 92, 246, 0.5);
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
-    background: rgba(139, 92, 246, 0.04);
+    border-color: rgba(24,199,181, 0.5);
+    box-shadow: 0 0 0 3px rgba(24,199,181, 0.12);
+    background: rgba(24,199,181, 0.04);
   }
 
   /* ── Settings Select ── */
@@ -160,12 +160,12 @@
   }
 
   .settings-select:focus {
-    border-color: rgba(139, 92, 246, 0.45);
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+    border-color: rgba(24,199,181, 0.45);
+    box-shadow: 0 0 0 2px rgba(24,199,181, 0.1);
   }
 
   .settings-select option {
-    background: #13131e;
+    background: #0b2030;
     color: #e0e0e0;
   }
 
@@ -183,8 +183,8 @@
   }
 
   .settings-input:focus {
-    border-color: rgba(139, 92, 246, 0.45);
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+    border-color: rgba(24,199,181, 0.45);
+    box-shadow: 0 0 0 2px rgba(24,199,181, 0.1);
   }
 
   /* ── Card (general) ── */
@@ -202,8 +202,8 @@
   /* ── Violet Glow ── */
   .glow-violet {
     box-shadow:
-      0 0 24px rgba(139, 92, 246, 0.35),
-      0 0 8px rgba(139, 92, 246, 0.15);
+      0 0 24px rgba(24,199,181, 0.35),
+      0 0 8px rgba(24,199,181, 0.15);
   }
 
   /* ── Green Glow ── */
@@ -222,7 +222,7 @@
 
   /* ── Gradient text (violet) ── */
   .gradient-text-violet {
-    background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #c4b5fd 100%);
+    background: linear-gradient(135deg, #8ee8dc 0%, #18c7b5 50%, #b8f3eb 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -236,26 +236,26 @@
     background-clip: text;
   }
 
-  /* ── ghostly-gradient (legacy compat) ── */
-  .ghostly-gradient {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  /* ── ibuddy-gradient (legacy compat) ── */
+  .ibuddy-gradient {
+    background: linear-gradient(135deg, #18c7b5 0%, #0fae9f 100%);
   }
 
-  .ghostly-gradient-text {
-    background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #c4b5fd 100%);
+  .ibuddy-gradient-text {
+    background: linear-gradient(135deg, #8ee8dc 0%, #18c7b5 50%, #b8f3eb 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  .ghostly-border {
-    border: 1px solid rgba(139, 92, 246, 0.25);
+  .ibuddy-border {
+    border: 1px solid rgba(24,199,181, 0.25);
   }
 
-  .ghostly-glow {
+  .ibuddy-glow {
     box-shadow:
-      0 0 20px rgba(139, 92, 246, 0.2),
-      0 0 60px rgba(139, 92, 246, 0.08);
+      0 0 20px rgba(24,199,181, 0.2),
+      0 0 60px rgba(24,199,181, 0.08);
   }
 
   /* ── Drag region ── */
@@ -274,6 +274,50 @@
 
   .no-drag {
     -webkit-app-region: no-drag;
+  }
+
+  /* One consistent close treatment for all iBuddy windows and panels. */
+  .ibuddy-close {
+    -webkit-app-region: no-drag;
+    pointer-events: auto;
+    position: relative;
+    color: #ff9388 !important;
+    background: linear-gradient(145deg, rgba(13, 37, 54, 0.98), rgba(6, 18, 29, 0.98)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 11px;
+    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  }
+
+  .ibuddy-close > * {
+    display: none;
+  }
+
+  .ibuddy-close::before,
+  .ibuddy-close::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 12px;
+    height: 1.75px;
+    border-radius: 999px;
+    background: currentColor;
+    transform-origin: center;
+  }
+
+  .ibuddy-close::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  .ibuddy-close::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
+
+  .ibuddy-close:hover {
+    color: #ffc1ba !important;
+    background: linear-gradient(145deg, rgba(77, 34, 39, 0.98), rgba(30, 24, 34, 0.98)) !important;
+    border-color: rgba(255, 147, 136, 0.48) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.48), 0 0 0 2px rgba(255,147,136,0.08) !important;
   }
 
   /* ── Status Badge ── */
@@ -298,9 +342,9 @@
   }
 
   .badge-violet {
-    background: rgba(139, 92, 246, 0.12);
-    border: 1px solid rgba(139, 92, 246, 0.3);
-    color: #a78bfa;
+    background: rgba(24,199,181, 0.12);
+    border: 1px solid rgba(24,199,181, 0.3);
+    color: #8ee8dc;
     padding: 2px 8px;
     border-radius: 100px;
     font-size: 9px;
@@ -343,8 +387,8 @@
 
   /* ── Glow pulse ── */
   @keyframes glow-pulse {
-    0%, 100% { box-shadow: 0 0 16px rgba(139, 92, 246, 0.3); }
-    50% { box-shadow: 0 0 32px rgba(139, 92, 246, 0.55); }
+    0%, 100% { box-shadow: 0 0 16px rgba(24,199,181, 0.3); }
+    50% { box-shadow: 0 0 32px rgba(24,199,181, 0.55); }
   }
 
   .animate-glow-pulse {

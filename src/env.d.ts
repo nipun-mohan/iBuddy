@@ -12,7 +12,7 @@ interface ImportMeta {
 }
 
 interface Window {
-  ghostly: {
+  ibuddy: {
     platform: string;
     openExternal: (url: string) => void;
     getMediaPermissions: () => Promise<{ platform: string; microphone: string; screen: string }>;
@@ -27,6 +27,8 @@ interface Window {
     copyText: (text: string) => Promise<boolean>;
     minimize: () => void;
     toggleMaximize: () => void;
+    setWindowLayout: (layout: "compact" | "interview") => void;
+    prepareHomeLayout: () => Promise<void>;
     getVersion: () => string;
     onShow: (cb: () => void) => () => void;
     captureFullscreen: () => Promise<string>;

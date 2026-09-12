@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useStore } from "../store/useStore";
+import type { InterviewEvaluation } from "../store/useStore";
 
 interface QAPair {
   question: string;
@@ -21,6 +23,8 @@ interface InterviewRecord {
   durationSeconds?: number;
   featuresUsed?: ("ai-answer" | "screen" | "chat")[];
   qaHistory?: QAPair[];
+  evaluation?: InterviewEvaluation;
+  evaluationStatus?: "generating" | "complete" | "failed";
 }
 
 /* ─── Design system ─── */
@@ -33,15 +37,15 @@ const GLASS: React.CSSProperties = {
 };
 
 const FEATURE_LABELS: Record<string, { icon: string; label: string; color: string; bg: string; border: string }> = {
-  "ai-answer": { icon: "🎙️", label: "AI Answer", color: "#a78bfa", bg: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)" },
-  "screen":    { icon: "🖥️", label: "Screen AI",  color: "#60a5fa", bg: "rgba(96,165,250,0.12)", border: "rgba(96,165,250,0.3)"  },
+  "ai-answer": { icon: "🎙️", label: "AI Answer", color: "#8ee8dc", bg: "rgba(24,199,181,0.12)", border: "rgba(24,199,181,0.3)" },
+  "screen":    { icon: "🖥️", label: "Screen AI",  color: "#5eead4", bg: "rgba(45,212,191,0.12)", border: "rgba(45,212,191,0.3)"  },
   "chat":      { icon: "💬", label: "AI Chat",    color: "#4ade80", bg: "rgba(74,222,128,0.12)", border: "rgba(74,222,128,0.3)"  },
   "follow-up": { icon: "🔄", label: "Follow-up",  color: "#fb923c", bg: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)"  },
 };
 
 const TYPE_STYLES: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  "dsa":           { label: "DSA",           color: "#a78bfa", bg: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.28)" },
-  "system_design": { label: "System Design", color: "#60a5fa", bg: "rgba(96,165,250,0.12)", border: "rgba(96,165,250,0.28)"  },
+  "dsa":           { label: "DSA",           color: "#8ee8dc", bg: "rgba(24,199,181,0.12)", border: "rgba(24,199,181,0.28)" },
+  "system_design": { label: "System Design", color: "#5eead4", bg: "rgba(45,212,191,0.12)", border: "rgba(45,212,191,0.28)"  },
   "frontend":      { label: "Frontend",      color: "#4ade80", bg: "rgba(74,222,128,0.12)", border: "rgba(74,222,128,0.28)"  },
   "sql":           { label: "SQL",           color: "#fbbf24", bg: "rgba(251,191,36,0.12)", border: "rgba(251,191,36,0.28)"  },
   "behavioral":    { label: "Behavioral",    color: "#fb923c", bg: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.28)"  },
@@ -49,7 +53,7 @@ const TYPE_STYLES: Record<string, { label: string; color: string; bg: string; bo
 };
 
 function typeStyle(type: string) {
-  return TYPE_STYLES[type] || { label: type, color: "#a78bfa", bg: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.28)" };
+  return TYPE_STYLES[type] || { label: type, color: "#8ee8dc", bg: "rgba(24,199,181,0.12)", border: "rgba(24,199,181,0.28)" };
 }
 
 function formatDate(ts: number) {
@@ -71,10 +75,10 @@ function CompanyAvatar({ name }: { name?: string }) {
     <div
       className="w-11 h-11 rounded-[14px] flex items-center justify-center text-[14px] font-black shrink-0 relative"
       style={{
-        background: "linear-gradient(135deg, rgba(139,92,246,0.2), rgba(99,102,241,0.15))",
-        border: "1px solid rgba(139,92,246,0.3)",
-        color: "#c4b5fd",
-        boxShadow: "0 0 14px rgba(139,92,246,0.15)",
+        background: "linear-gradient(135deg, rgba(24,199,181,0.2), rgba(14,165,164,0.15))",
+        border: "1px solid rgba(24,199,181,0.3)",
+        color: "#b8f3eb",
+        boxShadow: "0 0 14px rgba(24,199,181,0.15)",
       }}
     >
       {initials}
@@ -85,6 +89,8 @@ function CompanyAvatar({ name }: { name?: string }) {
 interface Props { open: boolean; onClose: () => void; }
 
 export const InterviewHistoryModal: React.FC<Props> = ({ open, onClose }) => {
+  const clearStoredHistory = useStore(state => state.clearHistory);
+  const removeStoredHistory = useStore(state => state.removeFromHistory);
   const [records, setRecords]     = useState<InterviewRecord[]>([]);
   const [selected, setSelected]   = useState<InterviewRecord | null>(null);
   const [expandedQA, setExpandedQA] = useState<number | null>(null);
@@ -97,40 +103,51 @@ export const InterviewHistoryModal: React.FC<Props> = ({ open, onClose }) => {
     setSelected(null);
     setExpandedQA(null);
     try {
-      window.ghostly.getHistory().then((h: InterviewRecord[]) => {
+      window.ibuddy.getHistory().then((h: InterviewRecord[]) => {
         setRecords(Array.isArray(h) ? h.sort((a, b) => b.timestamp - a.timestamp) : []);
         setLoading(false);
       }).catch(() => setLoading(false));
     } catch { setLoading(false); }
   }, [open]);
 
+  useEffect(() => {
+    if (!open || !records.some(record => record.evaluationStatus === "generating")) return;
+    const timer = setInterval(() => {
+      window.ibuddy.getHistory().then((history: InterviewRecord[]) => {
+        const next = Array.isArray(history) ? history.sort((a, b) => b.timestamp - a.timestamp) : [];
+        setRecords(next);
+        setSelected(current => current ? next.find(item => item.id === current.id) || null : null);
+      }).catch(() => {});
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [open, records]);
+
   const handleClearAll = async () => {
-    await window.ghostly.saveHistory([]).catch(() => {});
-    setRecords([]); setSelected(null); setConfirmClear(false);
+    await window.ibuddy.saveHistory([]);
+    clearStoredHistory();
+    const persisted = await window.ibuddy.getHistory();
+    if (Array.isArray(persisted) && persisted.length > 0) throw new Error("History could not be cleared");
+    setRecords([]);
+    setSelected(null);
+    setConfirmClear(false);
   };
 
   const handleDeleteOne = async (id: string) => {
     const next = records.filter(r => r.id !== id);
-    await window.ghostly.saveHistory(next).catch(() => {});
+    await window.ibuddy.saveHistory(next);
+    removeStoredHistory(id);
+    const persisted = await window.ibuddy.getHistory();
+    if (persisted.some((record: InterviewRecord) => record.id === id)) throw new Error("Session could not be deleted");
     setRecords(next);
     if (selected?.id === id) setSelected(null);
   };
 
+  // Do not leave an animated, invisible full-window backdrop behind after close.
+  // It can retain the native pointer hit-test after a frameless-window resize.
+  if (!open) return null;
+
   return (
     <>
-      {/* Backdrop */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9998]"
-            style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
-            onClick={onClose}
-          />
-        )}
-      </AnimatePresence>
-
       {/* Modal */}
       <AnimatePresence>
         {open && (
@@ -144,32 +161,37 @@ export const InterviewHistoryModal: React.FC<Props> = ({ open, onClose }) => {
             style={{ pointerEvents: "none", fontFamily: "'Inter', -apple-system, sans-serif" }}
           >
             <div
-              className="w-full flex flex-col rounded-[26px] overflow-hidden relative"
+              data-ibuddy-surface="true"
+              className="no-drag w-full flex flex-col rounded-[26px] overflow-hidden relative"
               style={{
                 ...GLASS,
                 maxWidth: selected ? "740px" : "450px",
                 maxHeight: "84vh",
                 pointerEvents: "auto",
+                WebkitAppRegion: "no-drag",
                 transition: "max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
               }}
-              onMouseEnter={() => window.ghostly.enableMouse()}
+              onMouseEnter={() => window.ibuddy.enableMouse()}
             >
               {/* Violet accent top bar */}
-              <div className="h-0.5 w-full shrink-0" style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.8), rgba(99,102,241,0.6), transparent)" }} />
+              <div className="h-0.5 w-full shrink-0" style={{ background: "linear-gradient(90deg, transparent, rgba(24,199,181,0.8), rgba(14,165,164,0.6), transparent)" }} />
 
               {/* ── Header ── */}
               <div
-                className="flex items-center justify-between px-5 py-4 shrink-0"
-                style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+                className="drag-region flex items-center justify-between px-5 py-4 shrink-0 cursor-move"
+                style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", WebkitAppRegion: "drag" }}
               >
                 <div className="flex items-center gap-3">
                   {selected && (
                     <button
-                      onClick={() => { setSelected(null); setExpandedQA(null); }}
-                      className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
-                      style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.12)"; e.currentTarget.style.color = "#a78bfa"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.3)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.4)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
+                      type="button"
+                      data-ibuddy-surface="true"
+                      onMouseDown={event => event.stopPropagation()}
+                      onClick={event => { event.preventDefault(); event.stopPropagation(); setSelected(null); setExpandedQA(null); }}
+                      className="no-drag w-9 h-9 flex items-center justify-center rounded-xl transition-all"
+                      style={{ WebkitAppRegion: "no-drag", pointerEvents: "auto", background: "rgba(24,199,181,0.16)", border: "1px solid rgba(45,212,191,0.4)", color: "#99f6e9", boxShadow: "0 3px 12px rgba(0,0,0,0.25)" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(24,199,181,0.28)"; e.currentTarget.style.color = "#ccfbf5"; e.currentTarget.style.borderColor = "rgba(94,234,212,0.65)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(24,199,181,0.16)"; e.currentTarget.style.color = "#99f6e9"; e.currentTarget.style.borderColor = "rgba(45,212,191,0.4)"; }}
                     >
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
                     </button>
@@ -186,27 +208,31 @@ export const InterviewHistoryModal: React.FC<Props> = ({ open, onClose }) => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div
+                  className="no-drag flex items-center gap-2"
+                  style={{ WebkitAppRegion: "no-drag", pointerEvents: "auto" }}
+                  onMouseDown={event => event.stopPropagation()}
+                >
                   {!selected && records.length > 0 && (
                     confirmClear ? (
-                      <div className="flex items-center gap-2">
+                      <div className="no-drag flex items-center gap-2" style={{ WebkitAppRegion: "no-drag", pointerEvents: "auto" }}>
                         <span className="text-[11px] font-semibold" style={{ color: "rgba(255,255,255,0.4)" }}>Sure?</span>
                         <button
                           onClick={handleClearAll}
-                          className="px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all"
-                          style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}
+                          className="no-drag px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all"
+                          style={{ WebkitAppRegion: "no-drag", pointerEvents: "auto", background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}
                         >Yes, Clear</button>
                         <button
                           onClick={() => setConfirmClear(false)}
-                          className="px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all"
-                          style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}
+                          className="no-drag px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all"
+                          style={{ WebkitAppRegion: "no-drag", pointerEvents: "auto", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}
                         >Cancel</button>
                       </div>
                     ) : (
                       <button
                         onClick={() => setConfirmClear(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all"
-                        style={{ background: "rgba(239,68,68,0.08)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}
+                        className="no-drag flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all"
+                        style={{ WebkitAppRegion: "no-drag", pointerEvents: "auto", background: "rgba(239,68,68,0.08)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}
                         onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.15)"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.35)"; }}
                         onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.2)"; }}
                       >
@@ -216,10 +242,10 @@ export const InterviewHistoryModal: React.FC<Props> = ({ open, onClose }) => {
                   )}
                   <button
                     onClick={onClose}
-                    className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
-                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.35)" }}
+                    className="ibuddy-close no-drag w-8 h-8 flex items-center justify-center transition-all"
+                    style={{ WebkitAppRegion: "no-drag", pointerEvents: "auto", background: "#dc2626", border: "1px solid #fca5a5", color: "#ffffff", boxShadow: "0 3px 12px rgba(220,38,38,0.55)" }}
                     onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; e.currentTarget.style.color = "#f87171"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.35)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "#dc2626"; e.currentTarget.style.color = "#ffffff"; e.currentTarget.style.borderColor = "#fca5a5"; }}
                   >
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
@@ -228,8 +254,8 @@ export const InterviewHistoryModal: React.FC<Props> = ({ open, onClose }) => {
 
               {/* ── Body ── */}
               <div
-                className="flex-1 min-h-0 overflow-y-auto"
-                style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(139,92,246,0.25) transparent" }}
+                className="no-drag flex-1 min-h-0 overflow-y-auto"
+                style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(24,199,181,0.35) transparent", WebkitAppRegion: "no-drag", overscrollBehavior: "contain" }}
               >
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -241,9 +267,9 @@ export const InterviewHistoryModal: React.FC<Props> = ({ open, onClose }) => {
                     <div
                       className="w-16 h-16 rounded-[20px] flex items-center justify-center text-4xl"
                       style={{
-                        background: "rgba(139,92,246,0.08)",
-                        border: "1px solid rgba(139,92,246,0.2)",
-                        boxShadow: "0 0 24px rgba(139,92,246,0.1)",
+                        background: "rgba(24,199,181,0.08)",
+                        border: "1px solid rgba(24,199,181,0.2)",
+                        boxShadow: "0 0 24px rgba(24,199,181,0.1)",
                       }}
                     >📭</div>
                     <div>
@@ -273,15 +299,17 @@ export const InterviewHistoryModal: React.FC<Props> = ({ open, onClose }) => {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.04, duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                           onClick={() => { setSelected(rec); setExpandedQA(null); }}
-                          className="w-full text-left rounded-[18px] p-4 transition-all outline-none group relative overflow-hidden"
+                          className="no-drag w-full text-left rounded-[18px] p-4 transition-all outline-none group relative overflow-hidden"
                           style={{
+                            WebkitAppRegion: "no-drag",
+                            pointerEvents: "auto",
                             background: "rgba(255,255,255,0.03)",
                             border: "1px solid rgba(255,255,255,0.07)",
                           }}
                           onMouseEnter={e => {
-                            e.currentTarget.style.background = "rgba(139,92,246,0.06)";
-                            e.currentTarget.style.borderColor = "rgba(139,92,246,0.22)";
-                            e.currentTarget.style.boxShadow = "0 0 20px rgba(139,92,246,0.08)";
+                            e.currentTarget.style.background = "rgba(24,199,181,0.06)";
+                            e.currentTarget.style.borderColor = "rgba(24,199,181,0.22)";
+                            e.currentTarget.style.boxShadow = "0 0 20px rgba(24,199,181,0.08)";
                           }}
                           onMouseLeave={e => {
                             e.currentTarget.style.background = "rgba(255,255,255,0.03)";
@@ -341,9 +369,17 @@ export const InterviewHistoryModal: React.FC<Props> = ({ open, onClose }) => {
                                 </span>
                               )}
                               {rec.qaHistory && rec.qaHistory.length > 0 && (
-                                <span className="text-[9.5px] font-semibold mt-0.5" style={{ color: "rgba(167,139,250,0.55)" }}>
+                                <span className="text-[9.5px] font-semibold mt-0.5" style={{ color: "rgba(142,232,220,0.55)" }}>
                                   {rec.qaHistory.length} Q&A
                                 </span>
+                              )}
+                              {rec.evaluation && (
+                                <span className="text-[11px] font-black mt-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300">
+                                  {rec.evaluation.overallScore.toFixed(1)}/10
+                                </span>
+                              )}
+                              {rec.evaluationStatus === "generating" && (
+                                <span className="text-[9px] font-semibold text-blue-300/70 animate-pulse">Generating report…</span>
                               )}
                             </div>
                           </div>
@@ -351,7 +387,7 @@ export const InterviewHistoryModal: React.FC<Props> = ({ open, onClose }) => {
                           {/* Arrow indicator */}
                           <div
                             className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            style={{ color: "rgba(167,139,250,0.6)" }}
+                            style={{ color: "rgba(142,232,220,0.6)" }}
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                           </div>
@@ -382,7 +418,7 @@ const DetailView: React.FC<{
 
   const copyText = async (text: string, idx: number) => {
     try {
-      await window.ghostly.copyText(text);
+      await window.ibuddy.copyText(text);
       setCopiedIdx(idx);
       setTimeout(() => setCopiedIdx(null), 2000);
     } catch {}
@@ -445,6 +481,51 @@ const DetailView: React.FC<{
         )}
       </div>
 
+      {/* ── AI Call Report ── */}
+      <div className="rounded-[20px] p-4 flex flex-col gap-3 bg-blue-500/[0.06] border border-blue-400/20">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-blue-300">✨ AI Call Report</p>
+          {record.evaluation && (
+            <span className="text-[16px] font-black text-blue-200 px-3 py-1 rounded-xl bg-blue-500/15 border border-blue-400/25">
+              {record.evaluation.overallScore.toFixed(1)}/10
+            </span>
+          )}
+        </div>
+        {record.evaluation ? (
+          <>
+            <p className="text-[12px] leading-relaxed text-white/75">{record.evaluation.summary}</p>
+            <p className="text-[9px] leading-relaxed text-white/35">{record.evaluation.basis}</p>
+            <div className="flex flex-col gap-2.5">
+              {record.evaluation.sections.map((section, index) => (
+                <div key={`${section.name}-${index}`} className="rounded-xl p-3 bg-black/20 border border-white/[0.07]">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <p className="text-[11px] font-black text-white/85">{section.name}</p>
+                    <span className="text-[10px] font-black text-blue-300">{section.score.toFixed(1)}/10</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-white/60">{section.howYouDid}</p>
+                  {section.missed.length > 0 && (
+                    <div className="mt-2"><p className="text-[9px] font-black uppercase tracking-wider text-amber-300/80">What was missed</p>
+                      <ul className="mt-1 space-y-1">{section.missed.map((item, i) => <li key={i} className="text-[10px] text-white/55">• {item}</li>)}</ul>
+                    </div>
+                  )}
+                  {section.improvements.length > 0 && (
+                    <div className="mt-2"><p className="text-[9px] font-black uppercase tracking-wider text-green-300/80">How to improve</p>
+                      <ul className="mt-1 space-y-1">{section.improvements.map((item, i) => <li key={i} className="text-[10px] text-white/55">• {item}</li>)}</ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        ) : record.evaluationStatus === "generating" ? (
+          <p className="text-[11px] text-blue-300/70 animate-pulse">Analyzing captured Q&A and preparing your report…</p>
+        ) : record.evaluationStatus === "failed" ? (
+          <p className="text-[11px] text-red-300/70">The report could not be generated. Check the selected provider key before your next call.</p>
+        ) : (
+          <p className="text-[11px] text-white/40">Reports are generated automatically for new calls. This older history item has no evaluation.</p>
+        )}
+      </div>
+
       {/* ── Q&A History ── */}
       {record.qaHistory && record.qaHistory.length > 0 ? (
         <div className="flex flex-col gap-2.5">
@@ -454,7 +535,7 @@ const DetailView: React.FC<{
             </p>
             <span
               className="text-[9.5px] font-bold px-2.5 py-1 rounded-full"
-              style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.25)", color: "#a78bfa" }}
+              style={{ background: "rgba(24,199,181,0.1)", border: "1px solid rgba(24,199,181,0.25)", color: "#8ee8dc" }}
             >
               {record.qaHistory.length} exchange{record.qaHistory.length !== 1 ? "s" : ""}
             </span>
@@ -475,7 +556,11 @@ const DetailView: React.FC<{
                 }}
               >
                 {/* Question header */}
-                <button className="w-full flex items-start gap-3 p-4 text-left outline-none" onClick={() => setExpandedQA(isOpen ? null : i)}>
+                <button
+                  className="no-drag w-full flex items-start gap-3 p-4 text-left outline-none"
+                  style={{ WebkitAppRegion: "no-drag", pointerEvents: "auto" }}
+                  onClick={() => setExpandedQA(isOpen ? null : i)}
+                >
                   <div
                     className="w-8 h-8 rounded-[10px] flex items-center justify-center text-[14px] shrink-0 mt-0.5"
                     style={{ background: feat.bg, border: `1px solid ${feat.border}` }}
@@ -530,17 +615,19 @@ const DetailView: React.FC<{
                         <div
                           className="rounded-[13px] p-3.5 relative"
                           style={{
-                            background: "rgba(139,92,246,0.07)",
-                            border: "1px solid rgba(139,92,246,0.2)",
-                            borderLeft: "3px solid rgba(139,92,246,0.6)",
+                            background: "rgba(24,199,181,0.07)",
+                            border: "1px solid rgba(24,199,181,0.2)",
+                            borderLeft: "3px solid rgba(24,199,181,0.6)",
                           }}
                         >
                           <div className="flex items-center justify-between mb-2.5">
-                            <p className="text-[8.5px] font-black uppercase tracking-widest" style={{ color: "rgba(167,139,250,0.7)" }}>🤖 Ghostly AI Answer</p>
+                            <p className="text-[8.5px] font-black uppercase tracking-widest" style={{ color: "rgba(142,232,220,0.7)" }}>🤖 iBuddy Answer</p>
                             <button
                               onClick={() => copyText(qa.answer, i)}
-                              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9.5px] font-bold transition-all"
+                              className="no-drag flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9.5px] font-bold transition-all"
                               style={{
+                                WebkitAppRegion: "no-drag",
+                                pointerEvents: "auto",
                                 background: copiedIdx === i ? "rgba(34,197,94,0.12)" : "rgba(255,255,255,0.06)",
                                 border: copiedIdx === i ? "1px solid rgba(34,197,94,0.3)" : "1px solid rgba(255,255,255,0.09)",
                                 color: copiedIdx === i ? "#4ade80" : "rgba(255,255,255,0.5)",
@@ -556,7 +643,7 @@ const DetailView: React.FC<{
                               maxHeight: "260px",
                               overflowY: "auto",
                               scrollbarWidth: "thin",
-                              scrollbarColor: "rgba(139,92,246,0.25) transparent",
+                              scrollbarColor: "rgba(24,199,181,0.25) transparent",
                             }}
                           >{qa.answer}</p>
                         </div>
@@ -585,20 +672,22 @@ const DetailView: React.FC<{
             <span className="text-[12px] font-semibold" style={{ color: "rgba(255,255,255,0.4)" }}>Delete session forever?</span>
             <button
               onClick={() => { onDelete(); setConfirmDelete(false); }}
-              className="px-4 py-2 rounded-xl text-[11px] font-bold transition-all"
-              style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}
+              className="no-drag px-4 py-2 rounded-xl text-[11px] font-bold transition-all"
+              style={{ WebkitAppRegion: "no-drag", pointerEvents: "auto", background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}
             >Yes, Delete</button>
             <button
               onClick={() => setConfirmDelete(false)}
-              className="px-4 py-2 rounded-xl text-[11px] font-bold transition-all"
-              style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}
+              className="no-drag px-4 py-2 rounded-xl text-[11px] font-bold transition-all"
+              style={{ WebkitAppRegion: "no-drag", pointerEvents: "auto", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}
             >Cancel</button>
           </div>
         ) : (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="w-full py-2.5 rounded-[13px] text-[12px] font-bold transition-all flex items-center justify-center gap-2"
+            className="no-drag w-full py-2.5 rounded-[13px] text-[12px] font-bold transition-all flex items-center justify-center gap-2"
             style={{
+              WebkitAppRegion: "no-drag",
+              pointerEvents: "auto",
               background: "rgba(239,68,68,0.07)",
               color: "#f87171",
               border: "1px solid rgba(239,68,68,0.18)",

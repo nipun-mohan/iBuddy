@@ -161,12 +161,12 @@ export function useInterviewAudio() {
     addLog("Starting microphone and system audio capture...");
 
     try {
-      const permissions = await window.ghostly.getMediaPermissions();
-      if (window.ghostly.platform === "darwin" && permissions.microphone === "not-determined") {
-        await window.ghostly.requestMicrophone();
+      const permissions = await window.ibuddy.getMediaPermissions();
+      if (window.ibuddy.platform === "darwin" && permissions.microphone === "not-determined") {
+        await window.ibuddy.requestMicrophone();
       }
       if (permissions.microphone === "denied" || permissions.microphone === "restricted") {
-        throw new Error("Microphone access is disabled. Enable Ghostly in System Settings → Privacy & Security → Microphone, then restart the app.");
+        throw new Error("Microphone access is disabled. Enable iBuddy in System Settings → Privacy & Security → Microphone, then restart the app.");
       }
       const micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -180,7 +180,7 @@ export function useInterviewAudio() {
       addLog(`✔ Microphone captured — ${sanitizeText(micStream.getAudioTracks()[0]?.label || "default microphone")}`);
 
       let displayStream: MediaStream | null = null;
-      const canAttemptSystemAudio = window.ghostly.platform !== "darwin" || permissions.screen !== "denied";
+      const canAttemptSystemAudio = window.ibuddy.platform !== "darwin" || permissions.screen !== "denied";
       try {
         if (!canAttemptSystemAudio) throw new Error("Screen & System Audio Recording permission is disabled");
         displayStream = await (navigator.mediaDevices as any).getDisplayMedia({
@@ -207,7 +207,7 @@ export function useInterviewAudio() {
       } else {
         addLog("Listening to your microphone only. Enable Screen & System Audio Recording to hear other speakers.");
       }
-      addLog(window.ghostly.platform === "darwin"
+      addLog(window.ibuddy.platform === "darwin"
         ? "Tip: macOS 14.2+ captures system audio natively; approve Screen & System Audio Recording if prompted."
         : "Tip: keep Zoom/Meet/Teams output on the same Windows default speaker/headset.");
 

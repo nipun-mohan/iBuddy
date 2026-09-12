@@ -164,7 +164,7 @@ export const AudioDiagnostics: React.FC<AudioDiagnosticsProps> = ({ onClose }) =
   };
 
   const statusColor = (s: StepStatus) =>
-    s === "pass" ? "#4ade80" : s === "fail" ? "#f87171" : s === "running" ? "#a78bfa" : "rgba(255,255,255,0.3)";
+    s === "pass" ? "#4ade80" : s === "fail" ? "#f87171" : s === "running" ? "#8ee8dc" : "rgba(255,255,255,0.3)";
   const statusIcon = (s: StepStatus) => (s === "pass" ? "✔" : s === "fail" ? "✕" : s === "running" ? "…" : "○");
 
   return (
@@ -177,7 +177,7 @@ export const AudioDiagnostics: React.FC<AudioDiagnosticsProps> = ({ onClose }) =
         className="rounded-[22px] w-[320px] max-h-[80vh] overflow-y-auto flex flex-col shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: "rgba(13,13,20,0.96)",
+          background: "rgba(8,19,31,0.96)",
           backdropFilter: "blur(32px)",
           border: "1px solid rgba(255,255,255,0.09)",
           boxShadow: "0 32px 80px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.06) inset",
@@ -185,7 +185,7 @@ export const AudioDiagnostics: React.FC<AudioDiagnosticsProps> = ({ onClose }) =
           pointerEvents: "auto",
         }}
       >
-        <div className="h-0.5 w-full shrink-0" style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.7), rgba(99,102,241,0.5), transparent)" }} />
+        <div className="h-0.5 w-full shrink-0" style={{ background: "linear-gradient(90deg, transparent, rgba(24,199,181,0.7), rgba(14,165,164,0.5), transparent)" }} />
         <div className="p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -193,7 +193,7 @@ export const AudioDiagnostics: React.FC<AudioDiagnosticsProps> = ({ onClose }) =
               <span className="text-[14px] font-black tracking-tight" style={{ color: "rgba(255,255,255,0.9)" }}>Audio Diagnostics</span>
             </div>
             <button onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-[11px]"
+              className="ibuddy-close no-drag w-7 h-7 flex items-center justify-center text-[11px]"
               style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
               ✕
             </button>
@@ -215,7 +215,7 @@ export const AudioDiagnostics: React.FC<AudioDiagnosticsProps> = ({ onClose }) =
             )}
             <button onClick={runCaptureTest} disabled={captureStep.status === "running"}
               className="w-full py-2 rounded-xl text-[10px] font-bold transition-all"
-              style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", color: "#a78bfa" }}>
+              style={{ background: "rgba(24,199,181,0.15)", border: "1px solid rgba(24,199,181,0.3)", color: "#8ee8dc" }}>
               {captureStep.status === "running" ? "Select a screen/tab to share…" : "Run Capture Test"}
             </button>
             <p className="text-[9px] mt-1.5" style={{ color: "rgba(255,255,255,0.25)" }}>
@@ -234,7 +234,7 @@ export const AudioDiagnostics: React.FC<AudioDiagnosticsProps> = ({ onClose }) =
             )}
             <button onClick={runDeepgramTest} disabled={deepgramStep.status === "running"}
               className="w-full py-2 rounded-xl text-[10px] font-bold transition-all"
-              style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", color: "#a78bfa" }}>
+              style={{ background: "rgba(24,199,181,0.15)", border: "1px solid rgba(24,199,181,0.3)", color: "#8ee8dc" }}>
               {deepgramStep.status === "running" ? "Connecting…" : "Test Deepgram Connection"}
             </button>
           </div>

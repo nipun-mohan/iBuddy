@@ -6,7 +6,7 @@ import { DEFAULT_ROUND_TEMPLATES, PROGRAMMING_LANGUAGES, type RoundTemplate } fr
 
 /* ── Design tokens ── */
 const GLASS: React.CSSProperties = {
-  background: "rgba(13,13,20,0.9)",
+  background: "rgba(8,19,31,0.9)",
   backdropFilter: "blur(24px)",
   WebkitBackdropFilter: "blur(24px)",
   border: "1px solid rgba(255,255,255,0.08)",
@@ -58,8 +58,8 @@ const GlassInput: React.FC<{
         className="w-full rounded-xl text-[11px] font-medium outline-none transition-all placeholder:text-white/15"
         style={{
           background: "rgba(255,255,255,0.04)",
-          border: focused ? "1px solid rgba(139,92,246,0.5)" : "1px solid rgba(255,255,255,0.08)",
-          boxShadow: focused ? "0 0 0 3px rgba(139,92,246,0.1)" : "none",
+          border: focused ? "1px solid rgba(24,199,181,0.5)" : "1px solid rgba(255,255,255,0.08)",
+          boxShadow: focused ? "0 0 0 3px rgba(24,199,181,0.1)" : "none",
           color: "rgba(255,255,255,0.82)",
           padding: "8px 10px",
           fontFamily: "'Inter', sans-serif",
@@ -91,8 +91,8 @@ const GlassTextarea: React.FC<{
         className="w-full rounded-xl text-[11px] font-medium outline-none resize-none leading-relaxed transition-all placeholder:text-white/15"
         style={{
           background: "rgba(255,255,255,0.04)",
-          border: focused ? "1px solid rgba(139,92,246,0.5)" : "1px solid rgba(255,255,255,0.08)",
-          boxShadow: focused ? "0 0 0 3px rgba(139,92,246,0.1)" : "none",
+          border: focused ? "1px solid rgba(24,199,181,0.5)" : "1px solid rgba(255,255,255,0.08)",
+          boxShadow: focused ? "0 0 0 3px rgba(24,199,181,0.1)" : "none",
           color: "rgba(255,255,255,0.82)",
           padding: "8px 10px",
           fontFamily: "'Inter', sans-serif",
@@ -122,7 +122,7 @@ export const InterviewSetupPage: React.FC = () => {
   const [activeTab, setActiveTab]     = useState<"session" | "rounds" | "profile">("session");
 
   React.useEffect(() => {
-    window.ghostly.getSavedProfile().then(saved => {
+    window.ibuddy.getSavedProfile().then(saved => {
       if (saved) { setProfile(saved); setSavedProfile(saved); }
     }).catch(() => {});
   }, [setSavedProfile]);
@@ -137,7 +137,7 @@ export const InterviewSetupPage: React.FC = () => {
   const handleAttachResume = async () => {
     setResumeStatus("Reading resume…");
     try {
-      const resume = await window.ghostly.attachResume();
+      const resume = await window.ibuddy.attachResume();
       if (!resume) { setResumeStatus(""); return; }
       setResumeName(resume.name);
       setResumeText(resume.text);
@@ -151,7 +151,7 @@ export const InterviewSetupPage: React.FC = () => {
     if (!isReady) return;
     const selectedRound = rounds.find(round => round.id === selectedRoundId) || rounds[0];
     updateSettings({ autoAI, customInstructions, language: codeLanguage, interviewType: selectedRound.id, roundTemplates: rounds });
-    if (hasProfile) { setSavedProfile(profile); await window.ghostly.saveProfile(profile).catch(() => {}); }
+    if (hasProfile) { setSavedProfile(profile); await window.ibuddy.saveProfile(profile).catch(() => {}); }
     setInterviewSession({
       companyName: companyName.trim(), position: position.trim(),
       language, description: customInstructions.trim(),
@@ -160,14 +160,13 @@ export const InterviewSetupPage: React.FC = () => {
       roundPrompt: selectedRound.prompt, programmingLanguage: codeLanguage,
       jobDescription: jobDescription.trim(), resumeName, resumeText,
     });
-    setTimeout(() => window.ghostly.saveSettings(useStore.getState().settings), 50);
+    setTimeout(() => window.ibuddy.saveSettings(useStore.getState().settings), 50);
     setAppScreen("api-setup");
   };
 
   const TABS = [
     { id: "session" as const, icon: "🎯", label: "Session" },
     { id: "rounds" as const, icon: "🧩", label: "Rounds" },
-    { id: "profile" as const, icon: "👤", label: `Profile${hasProfile ? " ✓" : ""}` },
   ];
 
   return (
@@ -176,25 +175,29 @@ export const InterviewSetupPage: React.FC = () => {
       style={{ background: "transparent", pointerEvents: "none", userSelect: "none", fontFamily: "'Inter', -apple-system, sans-serif" }}
     >
       {/* Ambient glow */}
-      <div className="fixed inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(139,92,246,0.09) 0%, transparent 60%)" }} />
+      <div className="fixed inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(24,199,181,0.09) 0%, transparent 60%)" }} />
 
       <motion.div
+        data-ibuddy-surface="true"
         initial={{ opacity: 0, scale: 0.97, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-[315px] flex flex-col gap-2.5 relative z-10"
-        style={{ pointerEvents: "auto" }}
-        onMouseEnter={() => window.ghostly.enableMouse()}
+        className="no-drag w-full max-w-[370px] flex flex-col gap-2.5 relative z-10"
+        style={{ pointerEvents: "auto", WebkitAppRegion: "no-drag" }}
+        onMouseEnter={() => window.ibuddy.enableMouse()}
       >
         {/* ── Header ── */}
-        <div className="flex items-center justify-between px-0.5">
+        <div
+          className="drag-region flex items-center justify-between px-0.5 cursor-move"
+          style={{ WebkitAppRegion: "drag" }}
+        >
           <div className="flex items-center gap-2.5">
             <div
               className="w-9 h-9 rounded-[13px] flex items-center justify-center text-[17px] shrink-0"
               style={{
-                background: "linear-gradient(135deg, rgba(139,92,246,0.25), rgba(99,102,241,0.18))",
-                border: "1.5px solid rgba(139,92,246,0.4)",
-                boxShadow: "0 0 20px rgba(139,92,246,0.25), 0 4px 12px rgba(0,0,0,0.4)",
+                background: "linear-gradient(135deg, rgba(24,199,181,0.25), rgba(14,165,164,0.18))",
+                border: "1.5px solid rgba(24,199,181,0.4)",
+                boxShadow: "0 0 20px rgba(24,199,181,0.25), 0 4px 12px rgba(0,0,0,0.4)",
               }}
             >🎯</div>
             <div>
@@ -206,7 +209,7 @@ export const InterviewSetupPage: React.FC = () => {
                     className="h-1 rounded-full transition-all"
                     style={{
                       width: i === 1 ? "20px" : "10px",
-                      background: i === 1 ? "rgba(139,92,246,0.8)" : "rgba(255,255,255,0.12)",
+                      background: i === 1 ? "rgba(24,199,181,0.8)" : "rgba(255,255,255,0.12)",
                     }}
                   />
                 ))}
@@ -217,7 +220,7 @@ export const InterviewSetupPage: React.FC = () => {
           <button
             onClick={() => setAppScreen("home")}
             className="flex items-center gap-2 text-[11px] font-extrabold px-3 py-2 rounded-xl transition-all"
-            style={{ background: "rgba(139,92,246,0.18)", border: "1px solid rgba(167,139,250,0.45)", color: "rgba(255,255,255,0.92)", boxShadow: "0 3px 12px rgba(0,0,0,0.3)" }}
+            style={{ background: "rgba(24,199,181,0.18)", border: "1px solid rgba(142,232,220,0.45)", color: "rgba(255,255,255,0.92)", boxShadow: "0 3px 12px rgba(0,0,0,0.3)" }}
             onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; e.currentTarget.style.color = "#fff"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
           >
@@ -227,9 +230,12 @@ export const InterviewSetupPage: React.FC = () => {
         </div>
 
         {/* ── Main Card ── */}
-        <div className="w-full rounded-[22px] overflow-hidden" style={GLASS}>
+        <div
+          className="no-drag w-full rounded-[22px] overflow-hidden"
+          style={{ ...GLASS, WebkitAppRegion: "no-drag", pointerEvents: "auto" }}
+        >
           {/* Violet accent top */}
-          <div className="h-0.5" style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.7), rgba(99,102,241,0.5), transparent)" }} />
+          <div className="h-0.5" style={{ background: "linear-gradient(90deg, transparent, rgba(24,199,181,0.7), rgba(14,165,164,0.5), transparent)" }} />
 
           {/* ── Tabs ── */}
           <div className="flex gap-1.5 px-3 pt-3">
@@ -239,10 +245,10 @@ export const InterviewSetupPage: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className="flex-1 py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all"
                 style={{
-                  background: activeTab === tab.id ? "rgba(139,92,246,0.15)" : "rgba(255,255,255,0.04)",
-                  border: activeTab === tab.id ? "1px solid rgba(139,92,246,0.35)" : "1px solid rgba(255,255,255,0.07)",
-                  color: activeTab === tab.id ? "#a78bfa" : "rgba(255,255,255,0.35)",
-                  boxShadow: activeTab === tab.id ? "0 0 12px rgba(139,92,246,0.15)" : "none",
+                  background: activeTab === tab.id ? "rgba(24,199,181,0.15)" : "rgba(255,255,255,0.04)",
+                  border: activeTab === tab.id ? "1px solid rgba(24,199,181,0.35)" : "1px solid rgba(255,255,255,0.07)",
+                  color: activeTab === tab.id ? "#8ee8dc" : "rgba(255,255,255,0.35)",
+                  boxShadow: activeTab === tab.id ? "0 0 12px rgba(24,199,181,0.15)" : "none",
                 }}
               >
                 {tab.icon} {tab.label}
@@ -256,8 +262,8 @@ export const InterviewSetupPage: React.FC = () => {
                 key="session"
                 initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
                 transition={{ duration: 0.15 }}
-                className="px-3 pt-3 pb-3 flex flex-col gap-3 max-h-[52vh] overflow-y-auto"
-                style={{ scrollbarWidth: "none" }}
+                className="no-drag px-3 pt-3 pb-3 flex flex-col gap-3 max-h-[52vh] overflow-y-auto"
+                style={{ scrollbarWidth: "none", WebkitAppRegion: "no-drag", overscrollBehavior: "contain" }}
               >
                 {/* Company + Position */}
                 <div className="grid grid-cols-2 gap-2">
@@ -275,8 +281,8 @@ export const InterviewSetupPage: React.FC = () => {
                     className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all"
                     style={{
                       background: "rgba(255,255,255,0.04)",
-                      border: langOpen ? "1px solid rgba(139,92,246,0.5)" : "1px solid rgba(255,255,255,0.08)",
-                      boxShadow: langOpen ? "0 0 0 3px rgba(139,92,246,0.1)" : "none",
+                      border: langOpen ? "1px solid rgba(24,199,181,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                      boxShadow: langOpen ? "0 0 0 3px rgba(24,199,181,0.1)" : "none",
                       color: "rgba(255,255,255,0.8)",
                     }}
                   >
@@ -292,7 +298,7 @@ export const InterviewSetupPage: React.FC = () => {
                         exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.12 }}
                         className="absolute top-[calc(100%+4px)] left-0 right-0 rounded-[16px] z-50 p-2"
                         style={{
-                          background: "rgba(13,13,20,0.98)",
+                          background: "rgba(8,19,31,0.98)",
                           backdropFilter: "blur(24px)",
                           border: "1px solid rgba(255,255,255,0.1)",
                           boxShadow: "0 16px 40px rgba(0,0,0,0.7)",
@@ -305,9 +311,9 @@ export const InterviewSetupPage: React.FC = () => {
                               onClick={() => { setLanguage(l.id); setLangOpen(false); }}
                               className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-[10px] font-semibold text-left transition-all"
                               style={{
-                                background: language === l.id ? "rgba(139,92,246,0.15)" : "transparent",
-                                border: language === l.id ? "1px solid rgba(139,92,246,0.3)" : "1px solid transparent",
-                                color: language === l.id ? "#a78bfa" : "rgba(255,255,255,0.55)",
+                                background: language === l.id ? "rgba(24,199,181,0.15)" : "transparent",
+                                border: language === l.id ? "1px solid rgba(24,199,181,0.3)" : "1px solid transparent",
+                                color: language === l.id ? "#8ee8dc" : "rgba(255,255,255,0.55)",
                               }}
                               onMouseEnter={e => { if (language !== l.id) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                               onMouseLeave={e => { if (language !== l.id) e.currentTarget.style.background = "transparent"; }}
@@ -365,13 +371,13 @@ export const InterviewSetupPage: React.FC = () => {
                 <div
                   className="flex items-center justify-between px-3 py-3 rounded-xl"
                   style={{
-                    background: autoAI ? "rgba(139,92,246,0.08)" : "rgba(255,255,255,0.04)",
-                    border: autoAI ? "1px solid rgba(139,92,246,0.25)" : "1px solid rgba(255,255,255,0.07)",
+                    background: autoAI ? "rgba(24,199,181,0.08)" : "rgba(255,255,255,0.04)",
+                    border: autoAI ? "1px solid rgba(24,199,181,0.25)" : "1px solid rgba(255,255,255,0.07)",
                     transition: "all 0.2s",
                   }}
                 >
                   <div>
-                    <p className="text-[11px] font-bold" style={{ color: autoAI ? "#a78bfa" : "rgba(255,255,255,0.6)" }}>
+                    <p className="text-[11px] font-bold" style={{ color: autoAI ? "#8ee8dc" : "rgba(255,255,255,0.6)" }}>
                       Auto AI Answer
                     </p>
                     <p className="text-[8.5px] font-medium mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>
@@ -382,8 +388,8 @@ export const InterviewSetupPage: React.FC = () => {
                     onClick={() => setAutoAI(!autoAI)}
                     style={{
                       width: "36px", height: "20px",
-                      background: autoAI ? "linear-gradient(135deg, #8b5cf6, #7c3aed)" : "rgba(255,255,255,0.08)",
-                      boxShadow: autoAI ? "0 0 12px rgba(139,92,246,0.4)" : "none",
+                      background: autoAI ? "linear-gradient(135deg, #18c7b5, #0fae9f)" : "rgba(255,255,255,0.08)",
+                      boxShadow: autoAI ? "0 0 12px rgba(24,199,181,0.4)" : "none",
                       borderRadius: "999px", border: "none", cursor: "pointer", position: "relative", transition: "all 0.2s",
                     }}
                   >
@@ -412,7 +418,8 @@ export const InterviewSetupPage: React.FC = () => {
               </motion.div>
             ) : activeTab === "rounds" ? (
               <motion.div key="rounds" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="px-3 pt-3 pb-3 flex flex-col gap-2.5 max-h-[52vh] overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+                className="no-drag px-3 pt-3 pb-3 flex flex-col gap-2.5 max-h-[52vh] overflow-y-auto"
+                style={{ scrollbarWidth: "none", WebkitAppRegion: "no-drag", overscrollBehavior: "contain" }}>
                 <div className="flex gap-2">
                   <input value={newRoundName} onChange={e => setNewRoundName(e.target.value)} placeholder="New round name"
                     className="flex-1 rounded-xl px-3 py-2 text-[10px] outline-none text-white bg-white/[0.04] border border-white/10" />
@@ -446,19 +453,19 @@ export const InterviewSetupPage: React.FC = () => {
                 key="profile"
                 initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }}
                 transition={{ duration: 0.15 }}
-                className="px-3 pt-3 pb-3 flex flex-col gap-2.5 max-h-[52vh] overflow-y-auto"
-                style={{ scrollbarWidth: "none" }}
+                className="no-drag px-3 pt-3 pb-3 flex flex-col gap-2.5 max-h-[52vh] overflow-y-auto"
+                style={{ scrollbarWidth: "none", WebkitAppRegion: "no-drag", overscrollBehavior: "contain" }}
               >
                 {/* Banner */}
                 <div
                   className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
                   style={{
-                    background: hasProfile ? "rgba(139,92,246,0.1)" : "rgba(255,255,255,0.04)",
-                    border: hasProfile ? "1px solid rgba(139,92,246,0.25)" : "1px solid rgba(255,255,255,0.07)",
+                    background: hasProfile ? "rgba(24,199,181,0.1)" : "rgba(255,255,255,0.04)",
+                    border: hasProfile ? "1px solid rgba(24,199,181,0.25)" : "1px solid rgba(255,255,255,0.07)",
                   }}
                 >
                   <span className="text-[13px]">{hasProfile ? "✓" : "💡"}</span>
-                  <p className="text-[9px] font-semibold" style={{ color: hasProfile ? "#a78bfa" : "rgba(255,255,255,0.38)" }}>
+                  <p className="text-[9px] font-semibold" style={{ color: hasProfile ? "#8ee8dc" : "rgba(255,255,255,0.38)" }}>
                     {hasProfile ? "Profile saved — AI will speak as you" : "AI will speak as you using your profile info."}
                   </p>
                 </div>
@@ -535,10 +542,10 @@ export const InterviewSetupPage: React.FC = () => {
               onClick={handleContinue} disabled={!isReady}
               className="w-full py-3 rounded-[14px] text-[12px] font-extrabold flex items-center justify-center gap-2 relative overflow-hidden transition-all"
               style={{
-                background: isReady ? "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)" : "rgba(255,255,255,0.04)",
+                background: isReady ? "linear-gradient(135deg, #18c7b5 0%, #0fae9f 100%)" : "rgba(255,255,255,0.04)",
                 color: isReady ? "#fff" : "rgba(255,255,255,0.22)",
                 border: isReady ? "none" : "1px solid rgba(255,255,255,0.07)",
-                boxShadow: isReady ? "0 6px 24px rgba(139,92,246,0.45), 0 1px 0 rgba(255,255,255,0.2) inset" : "none",
+                boxShadow: isReady ? "0 6px 24px rgba(24,199,181,0.45), 0 1px 0 rgba(255,255,255,0.2) inset" : "none",
                 cursor: isReady ? "pointer" : "not-allowed",
               }}
             >

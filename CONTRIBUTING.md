@@ -1,12 +1,12 @@
-# Contributing to Ghostly AI Desktop App 👻
+# Contributing to iBuddy Desktop App
 
-Thank you for your interest in contributing to **Ghostly AI Desktop App**! Ghostly AI is a 100% free and open-source stealth AI interview copilot for Windows designed to help students and software engineers ace technical interviews.
+Thank you for your interest in contributing to **iBuddy Desktop App**! iBuddy is a 100% free and open-source stealth AI interview copilot for Windows designed to help students and software engineers ace technical interviews.
 
 ---
 
 ## 🛠️ Project Architecture
 
-Ghostly AI Desktop App is an Electron app built with:
+iBuddy Desktop App is an Electron app built with:
 
 - **Framework**: Electron 34 + React 18 + Vite 5 + TypeScript
 - **Styling**: TailwindCSS + Framer Motion
@@ -28,8 +28,8 @@ Ghostly AI Desktop App is an Electron app built with:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Maheshshelke05/ghostly-releases.git
-   cd ghostly-desktop-app
+   git clone https://github.com/nipun-mohan/iBuddy.git
+   cd ibuddy-desktop-app
    ```
 
 2. **Install dependencies:**

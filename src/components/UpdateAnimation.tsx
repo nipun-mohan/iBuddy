@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 // actually gets sent when a downloaded update is ready to install. It used to
 // be missing from this union entirely, so TypeScript's own type error was
 // pointing at a real bug: the switch below had no case for it, so users saw a
-// generic "Ghostly AI — Ready" placeholder instead of an update-ready prompt.
+// generic "iBuddy — Ready" placeholder instead of an update-ready prompt.
 interface UpdateAnimationProps {
   status: "idle" | "checking" | "available" | "downloading" | "installing" | "ready" | "complete" | "error";
   progress?: number;
@@ -53,8 +53,8 @@ export const UpdateAnimation: React.FC<UpdateAnimationProps> = ({ status, progre
           emoji: "🔍",
           title: "Checking for Updates",
           subtitle: "Scanning for new version...",
-          color: "#3b82f6",
-          glow: "rgba(59, 130, 246, 0.5)",
+          color: "#18c7b5",
+          glow: "rgba(24,199,181, 0.5)",
         };
       case "downloading":
         return {
@@ -93,8 +93,8 @@ export const UpdateAnimation: React.FC<UpdateAnimationProps> = ({ status, progre
           emoji: "🎉",
           title: "Update Available",
           subtitle: version ? `v${version} is ready to download` : "A new version is ready to download",
-          color: "#3b82f6",
-          glow: "rgba(59, 130, 246, 0.5)",
+          color: "#18c7b5",
+          glow: "rgba(24,199,181, 0.5)",
         };
       case "error":
         return {
@@ -107,8 +107,8 @@ export const UpdateAnimation: React.FC<UpdateAnimationProps> = ({ status, progre
       case "idle":
       default:
         return {
-          emoji: "👻",
-          title: "Ghostly AI",
+          emoji: "✦",
+          title: "iBuddy",
           subtitle: "Ready",
           color: "#eb9245",
           glow: "rgba(235, 146, 69, 0.5)",
@@ -362,15 +362,15 @@ export const UpdateAnimation: React.FC<UpdateAnimationProps> = ({ status, progre
           )}
         </div>
 
-        {/* Bottom Ghostly Branding */}
+        {/* Bottom iBuddy branding */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
           className="absolute bottom-8 flex items-center gap-2"
         >
-          <span className="text-2xl">👻</span>
-          <span className="text-sm font-bold text-white/40">Ghostly AI</span>
+          <img src="./favicon.png" alt="iBuddy" className="w-7 h-7 rounded-lg" />
+          <span className="text-sm font-bold text-white/40">iBuddy</span>
         </motion.div>
       </motion.div>
     </AnimatePresence>

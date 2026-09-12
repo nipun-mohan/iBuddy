@@ -44,7 +44,7 @@ export const AudioSetupPage: React.FC = () => {
     setTesting(true); setTestDone(false); setMicStatus("testing"); setMicError(null);
     setSysStatus("idle"); setMicLevel(0); setBars(Array(16).fill(0));
     try {
-      if (window.ghostly.platform === "darwin") await window.ghostly.requestMicrophone();
+      if (window.ibuddy.platform === "darwin") await window.ibuddy.requestMicrophone();
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { deviceId: selectedMic === "default" ? undefined : { exact: selectedMic }, echoCancellation: false, noiseSuppression: false },
       });
@@ -76,11 +76,11 @@ export const AudioSetupPage: React.FC = () => {
       const name = err instanceof DOMException ? err.name : "";
       const message =
         name === "NotAllowedError" || name === "PermissionDeniedError"
-          ? window.ghostly.platform === "darwin"
-            ? "Microphone access is blocked. Open System Settings → Privacy & Security → Microphone, enable Ghostly, then restart the app."
-            : "Microphone access is blocked. Open Windows Settings → Privacy & security → Microphone, turn on \"Let apps access your microphone\", then restart Ghostly AI."
+          ? window.ibuddy.platform === "darwin"
+            ? "Microphone access is blocked. Open System Settings → Privacy & Security → Microphone, enable iBuddy, then restart the app."
+            : "Microphone access is blocked. Open Windows Settings → Privacy & security → Microphone, turn on \"Let apps access your microphone\", then restart iBuddy."
           : name === "NotFoundError" || name === "DevicesNotFoundError"
-            ? `No microphone was found. Plug in a mic/headset and check it is enabled in ${window.ghostly.platform === "darwin" ? "System Settings → Sound → Input" : "Windows Sound settings"}.`
+            ? `No microphone was found. Plug in a mic/headset and check it is enabled in ${window.ibuddy.platform === "darwin" ? "System Settings → Sound → Input" : "Windows Sound settings"}.`
             : name === "NotReadableError" || name === "TrackStartError"
               ? "Your microphone is being used by another app (Zoom, Teams, Discord, etc). Close it there and try again."
               : `Microphone test failed${name ? ` (${name})` : ""}. Try a different microphone from the list above.`;
@@ -97,10 +97,10 @@ export const AudioSetupPage: React.FC = () => {
   const handleActivate = () => {
     stopStream();
     updateSettings({ micDeviceId: selectedMic });
-    window.ghostly.setOpacity(1);
-    window.ghostly.show();
-    window.ghostly.enableMouse();
-    sessionStorage.setItem("ghostly_autostart", "true");
+    window.ibuddy.setOpacity(1);
+    window.ibuddy.show();
+    window.ibuddy.enableMouse();
+    sessionStorage.setItem("ibuddy_autostart", "true");
     setAppScreen("interview");
   };
 
@@ -108,9 +108,9 @@ export const AudioSetupPage: React.FC = () => {
     ? "Default Microphone"
     : microphones.find(m => m.deviceId === selectedMic)?.label || "Unknown";
 
-  const STATUS_COLORS = { idle: "rgba(255,255,255,0.28)", testing: "#a78bfa", ok: "#22c55e", error: "#f87171" };
-  const STATUS_BG = { idle: "rgba(255,255,255,0.04)", testing: "rgba(139,92,246,0.1)", ok: "rgba(34,197,94,0.1)", error: "rgba(239,68,68,0.1)" };
-  const STATUS_BORDER = { idle: "rgba(255,255,255,0.08)", testing: "rgba(139,92,246,0.3)", ok: "rgba(34,197,94,0.3)", error: "rgba(239,68,68,0.3)" };
+  const STATUS_COLORS = { idle: "rgba(255,255,255,0.28)", testing: "#8ee8dc", ok: "#22c55e", error: "#f87171" };
+  const STATUS_BG = { idle: "rgba(255,255,255,0.04)", testing: "rgba(24,199,181,0.1)", ok: "rgba(34,197,94,0.1)", error: "rgba(239,68,68,0.1)" };
+  const STATUS_BORDER = { idle: "rgba(255,255,255,0.08)", testing: "rgba(24,199,181,0.3)", ok: "rgba(34,197,94,0.3)", error: "rgba(239,68,68,0.3)" };
   const STATUS_TEXT = { idle: "Not Tested", testing: "Listening…", ok: "Signal OK ✓", error: "No Signal ✗" };
 
   return (
@@ -119,15 +119,16 @@ export const AudioSetupPage: React.FC = () => {
       style={{ background: "transparent", pointerEvents: "none", userSelect: "none", fontFamily: "'Inter', -apple-system, sans-serif" }}
     >
       {/* Ambient glow */}
-      <div className="fixed inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(139,92,246,0.09) 0%, transparent 60%)" }} />
+      <div className="fixed inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(24,199,181,0.09) 0%, transparent 60%)" }} />
 
       <motion.div
+        data-ibuddy-surface="true"
         initial={{ opacity: 0, scale: 0.97, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-[300px] flex flex-col gap-2.5 relative z-10"
+        className="w-full max-w-[370px] flex flex-col gap-2.5 relative z-10 drag-region"
         style={{ pointerEvents: "auto" }}
-        onMouseEnter={() => window.ghostly.enableMouse()}
+        onMouseEnter={() => window.ibuddy.enableMouse()}
       >
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-0.5">
@@ -135,9 +136,9 @@ export const AudioSetupPage: React.FC = () => {
             <div
               className="w-9 h-9 rounded-[13px] flex items-center justify-center text-[17px] shrink-0"
               style={{
-                background: "linear-gradient(135deg, rgba(139,92,246,0.25), rgba(99,102,241,0.18))",
-                border: "1.5px solid rgba(139,92,246,0.4)",
-                boxShadow: "0 0 20px rgba(139,92,246,0.25), 0 4px 12px rgba(0,0,0,0.4)",
+                background: "linear-gradient(135deg, rgba(24,199,181,0.25), rgba(14,165,164,0.18))",
+                border: "1.5px solid rgba(24,199,181,0.4)",
+                boxShadow: "0 0 20px rgba(24,199,181,0.25), 0 4px 12px rgba(0,0,0,0.4)",
               }}
             >🎙️</div>
             <div>
@@ -149,7 +150,7 @@ export const AudioSetupPage: React.FC = () => {
                     className="h-1 rounded-full transition-all"
                     style={{
                       width: "20px",
-                      background: "rgba(139,92,246,0.8)",
+                      background: "rgba(24,199,181,0.8)",
                     }}
                   />
                 ))}
@@ -160,7 +161,7 @@ export const AudioSetupPage: React.FC = () => {
           <button
             onClick={() => { stopStream(); setAppScreen("api-setup"); }}
             className="flex items-center gap-2 text-[11px] font-extrabold px-3 py-2 rounded-xl transition-all"
-            style={{ background: "rgba(139,92,246,0.18)", border: "1px solid rgba(167,139,250,0.45)", color: "rgba(255,255,255,0.92)", boxShadow: "0 3px 12px rgba(0,0,0,0.3)" }}
+            style={{ background: "rgba(24,199,181,0.18)", border: "1px solid rgba(142,232,220,0.45)", color: "rgba(255,255,255,0.92)", boxShadow: "0 3px 12px rgba(0,0,0,0.3)" }}
             onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; e.currentTarget.style.color = "#fff"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
           >
@@ -173,7 +174,7 @@ export const AudioSetupPage: React.FC = () => {
         <div
           className="w-full rounded-[22px] overflow-visible"
           style={{
-            background: "rgba(13,13,20,0.9)",
+            background: "rgba(8,19,31,0.9)",
             backdropFilter: "blur(24px)",
             WebkitBackdropFilter: "blur(24px)",
             border: "1px solid rgba(255,255,255,0.08)",
@@ -181,7 +182,7 @@ export const AudioSetupPage: React.FC = () => {
           }}
         >
           {/* Violet top accent */}
-          <div className="h-0.5 rounded-t-[22px]" style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.7), rgba(99,102,241,0.5), transparent)" }} />
+          <div className="h-0.5 rounded-t-[22px]" style={{ background: "linear-gradient(90deg, transparent, rgba(24,199,181,0.7), rgba(14,165,164,0.5), transparent)" }} />
 
           <div className="px-3.5 pt-3.5 pb-3 flex flex-col gap-3">
 
@@ -195,8 +196,8 @@ export const AudioSetupPage: React.FC = () => {
                 className="w-full px-3 py-2.5 rounded-xl flex items-center justify-between transition-all"
                 style={{
                   background: "rgba(255,255,255,0.04)",
-                  border: micDropOpen ? "1px solid rgba(139,92,246,0.5)" : "1px solid rgba(255,255,255,0.08)",
-                  boxShadow: micDropOpen ? "0 0 0 3px rgba(139,92,246,0.1)" : "none",
+                  border: micDropOpen ? "1px solid rgba(24,199,181,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                  boxShadow: micDropOpen ? "0 0 0 3px rgba(24,199,181,0.1)" : "none",
                   color: "rgba(255,255,255,0.8)",
                 }}
               >
@@ -204,9 +205,9 @@ export const AudioSetupPage: React.FC = () => {
                   <div
                     className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 relative"
                     style={{
-                      background: testing ? "rgba(139,92,246,0.15)" : "rgba(255,255,255,0.06)",
-                      border: testing ? "1px solid rgba(139,92,246,0.35)" : "1px solid rgba(255,255,255,0.1)",
-                      boxShadow: testing ? "0 0 12px rgba(139,92,246,0.3)" : "none",
+                      background: testing ? "rgba(24,199,181,0.15)" : "rgba(255,255,255,0.06)",
+                      border: testing ? "1px solid rgba(24,199,181,0.35)" : "1px solid rgba(255,255,255,0.1)",
+                      boxShadow: testing ? "0 0 12px rgba(24,199,181,0.3)" : "none",
                       transition: "all 0.3s",
                     }}
                   >
@@ -233,7 +234,7 @@ export const AudioSetupPage: React.FC = () => {
                     transition={{ duration: 0.12 }}
                     className="absolute top-[calc(100%+4px)] left-0 right-0 rounded-[16px] overflow-hidden z-50"
                     style={{
-                      background: "rgba(13,13,20,0.98)",
+                      background: "rgba(8,19,31,0.98)",
                       backdropFilter: "blur(24px)",
                       border: "1px solid rgba(255,255,255,0.1)",
                       boxShadow: "0 16px 40px rgba(0,0,0,0.7)",
@@ -251,15 +252,15 @@ export const AudioSetupPage: React.FC = () => {
                             onClick={() => { setSelectedMic(id); handleReset(); setMicDropOpen(false); }}
                             className="w-full text-left px-3.5 py-2.5 flex items-center justify-between transition-all"
                             style={{
-                              background: isSel ? "rgba(139,92,246,0.1)" : "transparent",
-                              color: isSel ? "#a78bfa" : "rgba(255,255,255,0.55)",
+                              background: isSel ? "rgba(24,199,181,0.1)" : "transparent",
+                              color: isSel ? "#8ee8dc" : "rgba(255,255,255,0.55)",
                               borderBottom: idx < microphones.length ? "1px solid rgba(255,255,255,0.04)" : "none",
                             }}
                             onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
                             onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = "transparent"; }}
                           >
                             <span className="text-[11px] font-semibold truncate pr-3">{label}</span>
-                            {isSel && <span className="text-[9px] font-black shrink-0" style={{ color: "#a78bfa" }}>✓</span>}
+                            {isSel && <span className="text-[9px] font-black shrink-0" style={{ color: "#8ee8dc" }}>✓</span>}
                           </button>
                         );
                       })}
@@ -296,11 +297,11 @@ export const AudioSetupPage: React.FC = () => {
                           style={{
                             minHeight: "3px", maxHeight: "40px",
                             background: h > 40
-                              ? "linear-gradient(to top, #8b5cf6, #a78bfa)"
+                              ? "linear-gradient(to top, #18c7b5, #8ee8dc)"
                               : h > 15
-                              ? "rgba(139,92,246,0.5)"
+                              ? "rgba(24,199,181,0.5)"
                               : "rgba(255,255,255,0.08)",
-                            boxShadow: h > 40 ? "0 0 8px rgba(139,92,246,0.5)" : "none",
+                            boxShadow: h > 40 ? "0 0 8px rgba(24,199,181,0.5)" : "none",
                             transition: "background 0.15s",
                           }}
                         />
@@ -319,11 +320,11 @@ export const AudioSetupPage: React.FC = () => {
                           className="h-full rounded-full"
                           style={{
                             background: micLevel > 60
-                              ? "linear-gradient(90deg, #8b5cf6, #a78bfa)"
+                              ? "linear-gradient(90deg, #18c7b5, #8ee8dc)"
                               : micLevel > 25
-                              ? "rgba(139,92,246,0.65)"
+                              ? "rgba(24,199,181,0.65)"
                               : "rgba(255,255,255,0.2)",
-                            boxShadow: micLevel > 40 ? "0 0 10px rgba(139,92,246,0.45)" : "none",
+                            boxShadow: micLevel > 40 ? "0 0 10px rgba(24,199,181,0.45)" : "none",
                             transition: "background 0.15s",
                           }}
                         />
@@ -331,12 +332,12 @@ export const AudioSetupPage: React.FC = () => {
                     </div>
 
                     {testing && (
-                      <p className="text-[9px] font-semibold text-center flex items-center justify-center gap-2" style={{ color: "rgba(167,139,250,0.7)" }}>
+                      <p className="text-[9px] font-semibold text-center flex items-center justify-center gap-2" style={{ color: "rgba(142,232,220,0.7)" }}>
                         <motion.span
                           animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
                           transition={{ duration: 0.8, repeat: Infinity }}
                           className="w-2 h-2 rounded-full inline-block"
-                          style={{ background: "#8b5cf6", boxShadow: "0 0 8px rgba(139,92,246,0.7)" }}
+                          style={{ background: "#18c7b5", boxShadow: "0 0 8px rgba(24,199,181,0.7)" }}
                         />
                         Speak aloud to test your microphone
                       </p>
@@ -366,7 +367,7 @@ export const AudioSetupPage: React.FC = () => {
                     className="w-2 h-2 rounded-full shrink-0"
                     style={{
                       background: STATUS_COLORS[status as keyof typeof STATUS_COLORS],
-                      boxShadow: status === "ok" ? "0 0 8px rgba(34,197,94,0.5)" : status === "testing" ? "0 0 8px rgba(139,92,246,0.5)" : "none",
+                      boxShadow: status === "ok" ? "0 0 8px rgba(34,197,94,0.5)" : status === "testing" ? "0 0 8px rgba(24,199,181,0.5)" : "none",
                     }}
                   />
                   <div>
@@ -412,13 +413,13 @@ export const AudioSetupPage: React.FC = () => {
                     ? "rgba(34,197,94,0.1)"
                     : testing
                     ? "rgba(255,255,255,0.05)"
-                    : "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                    : "linear-gradient(135deg, #18c7b5, #0fae9f)",
                   color: testDone ? "#4ade80" : testing ? "rgba(255,255,255,0.4)" : "#fff",
                   border: testDone ? "1px solid rgba(34,197,94,0.3)" : testing ? "1px solid rgba(255,255,255,0.08)" : "none",
                   boxShadow: testDone
                     ? "0 0 12px rgba(34,197,94,0.2)"
                     : testing ? "none"
-                    : "0 4px 16px rgba(139,92,246,0.4), 0 1px 0 rgba(255,255,255,0.18) inset",
+                    : "0 4px 16px rgba(24,199,181,0.4), 0 1px 0 rgba(255,255,255,0.18) inset",
                 }}
               >
                 {!testing && !testDone && (
@@ -457,11 +458,11 @@ export const AudioSetupPage: React.FC = () => {
             {/* ── Info chip ── */}
             <div
               className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl"
-              style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.18)" }}
+              style={{ background: "rgba(24,199,181,0.06)", border: "1px solid rgba(24,199,181,0.18)" }}
             >
               <span className="text-[13px] shrink-0 mt-0.5">🎧</span>
               <p className="text-[9px] font-medium leading-relaxed" style={{ color: "rgba(255,255,255,0.42)" }}>
-                Captures <b style={{ color: "rgba(167,139,250,0.8)" }}>all system audio</b> — Zoom, Meet, Teams transcribed automatically.
+                Captures <b style={{ color: "rgba(142,232,220,0.8)" }}>all system audio</b> — Zoom, Meet, Teams transcribed automatically.
               </p>
             </div>
           </div>
@@ -475,12 +476,12 @@ export const AudioSetupPage: React.FC = () => {
               style={{
                 background: testDone
                   ? "linear-gradient(135deg, #22c55e, #16a34a)"
-                  : "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                  : "linear-gradient(135deg, #18c7b5, #0fae9f)",
                 color: "#fff",
                 border: "none",
                 boxShadow: testDone
                   ? "0 6px 24px rgba(34,197,94,0.4), 0 1px 0 rgba(255,255,255,0.2) inset"
-                  : "0 6px 24px rgba(139,92,246,0.4), 0 1px 0 rgba(255,255,255,0.18) inset",
+                  : "0 6px 24px rgba(24,199,181,0.4), 0 1px 0 rgba(255,255,255,0.18) inset",
               }}
             >
               <motion.div

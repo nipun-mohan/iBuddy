@@ -1,4 +1,4 @@
-# Ghostly for macOS
+# iBuddy for macOS
 
 This port keeps the Electron/React experience from the Windows app and adds a
 native macOS application menu, menu-bar operation, Command-key shortcuts,

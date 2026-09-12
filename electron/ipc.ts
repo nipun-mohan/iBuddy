@@ -8,8 +8,8 @@ import https from "https";
 import http from "http";
 
 const store = new Store({
-  name: "ghostly-data",
-  encryptionKey: "ghostly-secure-key-v1",
+  name: "ibuddy-data",
+  encryptionKey: "ibuddy-secure-key-v1",
   defaults: {
     settings: {
       activeProvider: "gemini",
@@ -42,7 +42,7 @@ export function getStoredShortcuts(): ShortcutBindings {
 }
 
 export function registerIpcHandlers(): void {
-  ipcMain.handle("ghostly:attach-resume", async () => {
+  ipcMain.handle("ibuddy:attach-resume", async () => {
     const selected = await dialog.showOpenDialog({
       title: "Attach resume",
       properties: ["openFile"],
@@ -78,7 +78,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle("save-ads", (_event, ads: any[]) => { store.set("ads", ads); });
 
   // Desktop sources for system audio capture
-  ipcMain.handle("ghostly:get-desktop-sources", async () => {
+  ipcMain.handle("ibuddy:get-desktop-sources", async () => {
     try {
       const sources = await desktopCapturer.getSources({
         types: ["screen"],
@@ -93,7 +93,7 @@ export function registerIpcHandlers(): void {
   });
 
   // Full-screen capture
-  ipcMain.handle("ghostly:capture-fullscreen", async () => {
+  ipcMain.handle("ibuddy:capture-fullscreen", async () => {
     try {
       return await captureFullScreen();
     } catch (error) {
@@ -113,9 +113,9 @@ export function registerIpcHandlers(): void {
   });
 
   // Keyboard shortcuts
-  ipcMain.handle("ghostly:get-shortcuts", () => getStoredShortcuts());
+  ipcMain.handle("ibuddy:get-shortcuts", () => getStoredShortcuts());
 
-  ipcMain.handle("ghostly:update-shortcuts", (_event, bindings: ShortcutBindings) => {
+  ipcMain.handle("ibuddy:update-shortcuts", (_event, bindings: ShortcutBindings) => {
     if (!bindings || typeof bindings !== "object") return { ok: false, failed: [] };
     const merged = { ...DEFAULT_SHORTCUTS, ...bindings };
     const result = updateHotkeys(merged);
@@ -123,7 +123,7 @@ export function registerIpcHandlers(): void {
     return result;
   });
 
-  ipcMain.handle("ghostly:reset-shortcuts", () => {
+  ipcMain.handle("ibuddy:reset-shortcuts", () => {
     const result = updateHotkeys(DEFAULT_SHORTCUTS);
     store.set("shortcuts", DEFAULT_SHORTCUTS);
     return result;

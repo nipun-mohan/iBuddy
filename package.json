@@ -1,9 +1,9 @@
 {
-  "name": "ghostly",
-  "version": "3.7.4",
-  "description": "Stealth AI coding assistant for technical interviews",
+  "name": "ibuddy",
+  "version": "4.0.9",
+  "description": "Real-time AI interview copilot",
   "main": "./out/main/index.js",
-  "author": "Ghostly",
+  "author": "iBuddy",
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",

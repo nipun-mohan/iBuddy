@@ -9,6 +9,22 @@ export interface QAPair {
   timestamp: number;
 }
 
+export interface EvaluationSection {
+  name: string;
+  score: number;
+  howYouDid: string;
+  missed: string[];
+  improvements: string[];
+}
+
+export interface InterviewEvaluation {
+  overallScore: number;
+  summary: string;
+  basis: string;
+  sections: EvaluationSection[];
+  generatedAt: number;
+}
+
 export interface Ad {
   id: string;
   title: string;
@@ -53,6 +69,8 @@ export interface Solution {
   durationSeconds?: number;
   featuresUsed?: ("ai-answer" | "screen" | "chat")[];
   qaHistory?: QAPair[];
+  evaluation?: InterviewEvaluation;
+  evaluationStatus?: "generating" | "complete" | "failed";
 }
 
 export interface SessionMessage {
@@ -108,7 +126,7 @@ export interface Settings {
   autoScroll?: boolean;
 }
 
-interface GhostlyStore {
+interface iBuddyStore {
   appScreen: "home" | "login" | "interview-setup" | "api-setup" | "audio-setup" | "interview";
   interviewSession: InterviewSession | null;
   savedProfile: CandidateProfile | null;
@@ -159,7 +177,7 @@ const ENV = {
   openrouter:  import.meta.env.VITE_OPENROUTER_API_KEY   || "",
 };
 
-export const useStore = create<GhostlyStore>((set) => ({
+export const useStore = create<iBuddyStore>((set) => ({
   appScreen: "home",
   interviewSession: null,
   savedProfile: null,

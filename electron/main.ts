@@ -9,6 +9,26 @@ import { applyStealthMode, removeStealthMode, safeguardVisibility } from "./stea
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let authServer: http.Server | null = null;
+let restoreBounds: Electron.Rectangle | null = null;
+let expanded = false;
+
+function applyWindowLayout(layout: "compact" | "interview"): void {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) mainWindow.unmaximize();
+  expanded = false;
+  restoreBounds = null;
+  const target = layout === "interview" ? { width: 900, height: 620 } : { width: 430, height: 560 };
+  const bounds = mainWindow.getBounds();
+  const area = screen.getDisplayMatching(bounds).workArea;
+  const width = Math.min(target.width, area.width);
+  const height = Math.min(target.height, area.height);
+  mainWindow.setBounds({
+    x: Math.max(area.x, Math.min(bounds.x, area.x + area.width - width)),
+    y: Math.max(area.y, Math.min(bounds.y, area.y + area.height - height)),
+    width,
+    height,
+  }, false);
+}
 
 // The website's AuthCallback page posts here after Google OAuth completes, in a
 // system-browser tab entirely separate from this window. webContents.send() is
@@ -69,7 +89,7 @@ function startAuthServer() {
         try {
           const { token, user } = JSON.parse(body);
           pendingAuthToken = { token, user };
-          mainWindow?.webContents.send("ghostly:auth-token", { token, user });
+          mainWindow?.webContents.send("ibuddy:auth-token", { token, user });
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ ok: true }));
         } catch {
@@ -87,7 +107,7 @@ function handleDeepLink(url: string) {
   if (!mainWindow) return;
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.focus();
-  mainWindow.webContents.send("ghostly:deep-link", url);
+  mainWindow.webContents.send("ibuddy:deep-link", url);
 }
 
 function enforceStealthOnWindow(win: BrowserWindow): void {
@@ -103,11 +123,11 @@ function createMainWindow(): BrowserWindow {
   if (process.platform !== "darwin") Menu.setApplicationMenu(null);
 
   const win = new BrowserWindow({
-    width: 700,
-    height: 600,
+    width: 430,
+    height: 560,
     minWidth: 400,
     minHeight: 300,
-    x: Math.floor((primary.width - 700) / 2),
+    x: Math.floor((primary.width - 430) / 2),
     y: 80,
     transparent: true,
     frame: false,
@@ -136,17 +156,17 @@ function createMainWindow(): BrowserWindow {
   // one that's simply "not visible", with no way to tell the difference otherwise.
   win.webContents.on("did-fail-load", (_e, errorCode, errorDescription, validatedURL) => {
     console.error(
-      `[Ghostly] ❌ Renderer failed to load (${errorCode} ${errorDescription}): ${validatedURL}`,
+      `[iBuddy] ❌ Renderer failed to load (${errorCode} ${errorDescription}): ${validatedURL}`,
     );
   });
   win.webContents.on("render-process-gone", (_e, details) => {
-    console.error("[Ghostly] ❌ Renderer process gone:", JSON.stringify(details));
+    console.error("[iBuddy] ❌ Renderer process gone:", JSON.stringify(details));
   });
   win.webContents.on("unresponsive", () => {
-    console.error("[Ghostly] ❌ Renderer became unresponsive");
+    console.error("[iBuddy] ❌ Renderer became unresponsive");
   });
   win.webContents.on("preload-error", (_e, preloadPath, error) => {
-    console.error(`[Ghostly] ❌ Preload script error in ${preloadPath}:`, error);
+    console.error(`[iBuddy] ❌ Preload script error in ${preloadPath}:`, error);
   });
   if (!app.isPackaged) {
     win.webContents.on("console-message", (_e, level, message, line, sourceId) => {
@@ -169,9 +189,6 @@ function createMainWindow(): BrowserWindow {
     win.focus();
     win.setAlwaysOnTop(true, "screen-saver");
     if (app.isPackaged) applyStealthMode(win);
-    // Restore update checks after launch, delayed so they never block startup or
-    // trigger alongside the macOS permission flow.
-    if (app.isPackaged) setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 5000);
   });
 
   return win;
@@ -187,7 +204,7 @@ function toggleWindowVisibility() {
     mainWindow.setAlwaysOnTop(true, "screen-saver");
     mainWindow.setIgnoreMouseEvents(false);
     mainWindow.focus();
-    mainWindow.webContents.send("ghostly:show");
+    mainWindow.webContents.send("ibuddy:show");
     // The 0 -> 1 opacity jump can leave Windows' DWM holding a stale (blank)
     // composited frame for this window — same class of bug as the stealth-mode
     // repaint glitch, just triggered by the ordinary hide/show toggle instead of
@@ -205,12 +222,12 @@ function createTray(): Tray {
   );
   const t = new Tray(icon);
   if (process.platform === "darwin") icon.setTemplateImage(true);
-  t.setToolTip("Ghostly — Stealth AI Assistant");
+  t.setToolTip("iBuddy — Interview Copilot");
   t.setContextMenu(Menu.buildFromTemplate([
-    { label: "Show/Hide Ghostly", click: toggleWindowVisibility },
-    { label: "Capture Screen", click: () => mainWindow?.webContents.send("ghostly:screenshot") },
+    { label: "Show/Hide iBuddy", click: toggleWindowVisibility },
+    { label: "Capture Screen", click: () => mainWindow?.webContents.send("ibuddy:screenshot") },
     { type: "separator" },
-    { label: "Quit Ghostly", click: () => app.quit() },
+    { label: "Quit iBuddy", click: () => app.quit() },
   ]));
   t.on("click", toggleWindowVisibility);
   return t;
@@ -224,7 +241,7 @@ function installMacMenu(): void {
       submenu: [
         { role: "about" },
         { type: "separator" },
-        { label: "Show or Hide Ghostly", accelerator: "Command+B", click: toggleWindowVisibility },
+        { label: "Show or Hide iBuddy", accelerator: "Command+B", click: toggleWindowVisibility },
         { type: "separator" },
         { role: "hide" },
         { role: "hideOthers" },
@@ -244,7 +261,7 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on("second-instance", (_event, commandLine) => {
-    const url = commandLine.find((arg) => arg.startsWith("ghostly://"));
+    const url = commandLine.find((arg) => arg.startsWith("ibuddy://"));
     if (url) handleDeepLink(url);
     else if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
@@ -256,9 +273,9 @@ if (!gotTheLock) {
   app.whenReady().then(() => {
     // Register deep link protocol
     if (process.defaultApp && process.argv.length >= 2) {
-      app.setAsDefaultProtocolClient("ghostly", process.execPath, [path.resolve(process.argv[1])]);
+      app.setAsDefaultProtocolClient("ibuddy", process.execPath, [path.resolve(process.argv[1])]);
     } else {
-      app.setAsDefaultProtocolClient("ghostly");
+      app.setAsDefaultProtocolClient("ibuddy");
     }
 
     // Serve static files (images) from renderer folder in production
@@ -307,12 +324,12 @@ if (!gotTheLock) {
     // The source is resolved lazily on the first explicit audio/capture action.
 
     // IPC handlers
-    ipcMain.handle("ghostly:get-pending-auth-token", () => {
+    ipcMain.handle("ibuddy:get-pending-auth-token", () => {
       const pending = pendingAuthToken;
       pendingAuthToken = null;
       return pending;
     });
-    ipcMain.on("ghostly:open-external", (_event, url: string) => {
+    ipcMain.on("ibuddy:open-external", (_event, url: string) => {
       try {
         const parsed = new URL(url);
         if (["https:", "http:", "mailto:"].includes(parsed.protocol)) {
@@ -320,29 +337,35 @@ if (!gotTheLock) {
         }
       } catch { /* invalid URL — ignore */ }
     });
-    ipcMain.handle("ghostly:get-media-permissions", () => ({
+    ipcMain.handle("ibuddy:get-media-permissions", () => ({
       platform: process.platform,
       microphone: systemPreferences.getMediaAccessStatus("microphone"),
       screen: systemPreferences.getMediaAccessStatus("screen"),
     }));
-    ipcMain.handle("ghostly:request-microphone", async () => {
+    ipcMain.handle("ibuddy:request-microphone", async () => {
       if (process.platform !== "darwin") return true;
       return systemPreferences.askForMediaAccess("microphone");
     });
-    ipcMain.on("ghostly:open-privacy-settings", (_event, section: "microphone" | "screen") => {
+    ipcMain.on("ibuddy:open-privacy-settings", (_event, section: "microphone" | "screen") => {
       if (process.platform !== "darwin") return;
       const pane = section === "screen" ? "Privacy_ScreenCapture" : "Privacy_Microphone";
       shell.openExternal(`x-apple.systempreferences:com.apple.preference.security?${pane}`);
     });
-    ipcMain.on("ghostly:enable-mouse", () => mainWindow?.setIgnoreMouseEvents(false));
-    ipcMain.on("ghostly:disable-mouse", () => mainWindow?.setIgnoreMouseEvents(false));
-    ipcMain.on("ghostly:set-opacity", (_event, value: number) => {
+    ipcMain.on("ibuddy:enable-mouse", () => mainWindow?.setIgnoreMouseEvents(false));
+    // Keep visible windows interactive. On macOS an ignored transparent window can
+    // stop receiving the movement event needed to turn mouse handling back on.
+    ipcMain.on("ibuddy:disable-mouse", () => mainWindow?.setIgnoreMouseEvents(false));
+    ipcMain.on("ibuddy:set-window-layout", (_event, layout: "compact" | "interview") => {
+      applyWindowLayout(layout);
+    });
+    ipcMain.handle("ibuddy:prepare-home-layout", () => applyWindowLayout("compact"));
+    ipcMain.on("ibuddy:set-opacity", (_event, value: number) => {
       if (mainWindow) mainWindow.setOpacity(Math.min(1, Math.max(0.1, value)));
     });
-    ipcMain.on("ghostly:hide", () => {
+    ipcMain.on("ibuddy:hide", () => {
       if (mainWindow) { mainWindow.setOpacity(0); mainWindow.blur(); mainWindow.setIgnoreMouseEvents(true, { forward: false }); }
     });
-    ipcMain.on("ghostly:show", () => {
+    ipcMain.on("ibuddy:show", () => {
       if (mainWindow) {
         mainWindow.setOpacity(1);
         mainWindow.show();
@@ -358,19 +381,31 @@ if (!gotTheLock) {
         }, 150);
       }
     });
-    ipcMain.on("ghostly:quit", () => app.quit());
-    ipcMain.handle("ghostly:copy-text", (_event, text: string) => {
+    ipcMain.on("ibuddy:quit", () => {
+      // Remove the window from the compositor before Electron begins shutdown so
+      // macOS never exposes a stale renderer frame during the quit transition.
+      mainWindow?.hide();
+      setImmediate(() => app.quit());
+    });
+    ipcMain.handle("ibuddy:copy-text", (_event, text: string) => {
       clipboard.writeText(String(text || ""));
       return true;
     });
-    ipcMain.on("ghostly:minimize", () => mainWindow?.minimize());
-    ipcMain.on("ghostly:toggle-maximize", () => {
+    ipcMain.on("ibuddy:minimize", () => mainWindow?.minimize());
+    ipcMain.on("ibuddy:toggle-maximize", () => {
       if (!mainWindow) return;
-      if (mainWindow.isMaximized()) mainWindow.unmaximize();
-      else mainWindow.maximize();
+      if (expanded || mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+        if (restoreBounds) mainWindow.setBounds(restoreBounds, true);
+        expanded = false;
+      } else {
+        restoreBounds = mainWindow.getBounds();
+        mainWindow.maximize();
+        expanded = true;
+      }
     });
-    ipcMain.on("ghostly:get-version", (event) => { event.returnValue = app.getVersion(); });
-    ipcMain.on("ghostly:move", (_event, dx: number, dy: number) => {
+    ipcMain.on("ibuddy:get-version", (event) => { event.returnValue = app.getVersion(); });
+    ipcMain.on("ibuddy:move", (_event, dx: number, dy: number) => {
       if (mainWindow) {
         const [x, y] = mainWindow.getPosition();
         mainWindow.setPosition(x + dx, y + dy);
@@ -385,42 +420,33 @@ if (!gotTheLock) {
 
     autoUpdater.on("checking-for-update", () => {
       console.log("[Updater] Checking for update...");
-      mainWindow?.webContents.send("ghostly:update-checking");
+      mainWindow?.webContents.send("ibuddy:update-checking");
     });
     autoUpdater.on("update-available", (info) => {
       const safeVersion = String(info.version).replace(/[^\w.-]/g, "");
       console.log("[Updater] Update available:", safeVersion);
-      mainWindow?.webContents.send("ghostly:update-available", safeVersion);
+      mainWindow?.webContents.send("ibuddy:update-available", safeVersion);
     });
     autoUpdater.on("update-not-available", (info) => {
       const safeVersion = String(info.version).replace(/[^\w.-]/g, "");
       console.log("[Updater] No update available. Current:", safeVersion);
-      mainWindow?.webContents.send("ghostly:update-not-available");
+      mainWindow?.webContents.send("ibuddy:update-not-available");
     });
     autoUpdater.on("download-progress", (progress) => {
-      mainWindow?.webContents.send("ghostly:update-progress", Math.round(progress.percent));
+      mainWindow?.webContents.send("ibuddy:update-progress", Math.round(progress.percent));
     });
     autoUpdater.on("update-downloaded", () => {
       console.log("[Updater] Update downloaded!");
-      mainWindow?.webContents.send("ghostly:update-downloaded");
+      mainWindow?.webContents.send("ibuddy:update-downloaded");
     });
     autoUpdater.on("error", (err) => {
       const safeMsg = String(err.message).replace(/[\r\n]/g, " ").slice(0, 200);
       console.error("[Updater] Error:", safeMsg);
-      mainWindow?.webContents.send("ghostly:update-error", safeMsg);
+      mainWindow?.webContents.send("ibuddy:update-error", safeMsg);
     });
 
-    ipcMain.on("ghostly:download-update", () => autoUpdater.downloadUpdate());
-    ipcMain.on("ghostly:install-update", () => autoUpdater.quitAndInstall());
-    ipcMain.on("ghostly:check-update", () => {
-      if (app.isPackaged) {
-        autoUpdater.checkForUpdates();
-      } else {
-        mainWindow?.webContents.send("ghostly:update-error", "Auto-update only works in packaged app.");
-      }
-    });
-
-    // Users can also trigger an immediate check from the home screen.
+    ipcMain.on("ibuddy:download-update", () => autoUpdater.downloadUpdate());
+    ipcMain.on("ibuddy:install-update", () => autoUpdater.quitAndInstall());
   });
 
   app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
@@ -430,6 +456,6 @@ if (!gotTheLock) {
   // macOS deep link
   app.on("open-url", (event, url) => {
     event.preventDefault();
-    if (url.startsWith("ghostly://")) handleDeepLink(url);
+    if (url.startsWith("ibuddy://")) handleDeepLink(url);
   });
 }

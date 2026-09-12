@@ -25,7 +25,7 @@ interface AIProviderConfig {
 // `vite build`, so it silently worked at runtime but wasn't real type safety).
 const AI_PROVIDERS: AIProviderConfig[] = [
   {
-    id: "groq", label: "Groq", icon: "⚡", badge: "FAST", badgeColor: "rgba(139,92,246,0.15)", badgeBorder: "rgba(139,92,246,0.3)", badgeText: "#a78bfa",
+    id: "groq", label: "Groq", icon: "⚡", badge: "FAST", badgeColor: "rgba(24,199,181,0.15)", badgeBorder: "rgba(24,199,181,0.3)", badgeText: "#8ee8dc",
     url: "https://console.groq.com/keys", ph: "gsk_…",
     // Llama 4 Scout was removed from Groq's catalog (production and preview) and was
     // erroring "model does not exist" for every user — do not re-add it. Groq has no
@@ -36,7 +36,7 @@ const AI_PROVIDERS: AIProviderConfig[] = [
     modelLabels: { "openai/gpt-oss-120b": "GPT-OSS 120B — FREE", "openai/gpt-oss-20b": "GPT-OSS 20B — FREE + FAST" },
   },
   {
-    id: "gemini", label: "Gemini", icon: "🔵", badge: "FREE", badgeColor: "rgba(59,130,246,0.12)", badgeBorder: "rgba(59,130,246,0.3)", badgeText: "#60a5fa",
+    id: "gemini", label: "Gemini", icon: "🔵", badge: "FREE", badgeColor: "rgba(24,199,181,0.12)", badgeBorder: "rgba(24,199,181,0.3)", badgeText: "#5eead4",
     url: "https://aistudio.google.com/app/apikey", ph: "AIza…",
     // gemini-2.5-flash/2.5-pro/2.0-flash all 404 ("no longer available to
     // new users") on a current "AQ."-format key — verified live. Only ship
@@ -198,30 +198,30 @@ export const ApiSetupPage: React.FC = () => {
         // fetch() here always fails regardless of key validity, which meant
         // this test button reported "Invalid" even for a good key. Go through
         // the same Electron main-process proxy the real provider call uses.
-        const result = await window.ghostly.nvidiaTestKey(key);
+        const result = await window.ibuddy.nvidiaTestKey(key);
         if (result.ok) {
           // Persist the exact credential that passed the real inference test.
           // This prevents a previously saved NVIDIA key from remaining active
           // when the user tests a newly pasted key but leaves the page another way.
           setApiKey("nvidia", key);
-          await window.ghostly.saveSettings(useStore.getState().settings);
+          await window.ibuddy.saveSettings(useStore.getState().settings);
           setTestStatus(prev => ({ ...prev, nvidia: { status: "valid", message: "NVIDIA Key Valid! 🟢" } }));
         } else {
           const detail = result.status === 401
             ? "Key cannot access NVIDIA serverless inference (HTTP 401)"
             : result.status === 410
-              ? "NVIDIA retired the test model (HTTP 410); install the latest Ghostly build"
+              ? "NVIDIA retired the test model (HTTP 410); install the latest iBuddy build"
             : `NVIDIA inference test failed (HTTP ${result.status})`;
           setTestStatus(prev => ({ ...prev, nvidia: { status: "invalid", message: detail } }));
         }
       } else if (providerId === "openai") {
-        const result = await window.ghostly.openaiTestKey(key);
+        const result = await window.ibuddy.openaiTestKey(key);
         if (result.ok) {
           const selectedModel = selModel.openai || AI_PROVIDERS.find(p => p.id === "openai")!.models[0];
           setApiKey("openai", key);
           setActiveProv("openai");
           updateSettings({ activeProvider: "openai", activeModel: selectedModel });
-          await window.ghostly.saveSettings(useStore.getState().settings);
+          await window.ibuddy.saveSettings(useStore.getState().settings);
           setTestStatus(prev => ({ ...prev, openai: { status: "valid", message: "OpenAI Key Valid! 🟣" } }));
         } else {
           const parsed = JSON.parse(result.data || "{}");
@@ -231,7 +231,7 @@ export const ApiSetupPage: React.FC = () => {
       } else if (providerId === "anthropic") {
         // Anthropic blocks direct browser calls (no CORS) — go through the same
         // Electron main-process proxy the real provider uses.
-        const result = await window.ghostly.anthropicApiCall(key, {
+        const result = await window.ibuddy.anthropicApiCall(key, {
           model: "claude-haiku-4-5-20251001",
           max_tokens: 1,
           messages: [{ role: "user", content: "hi" }],
@@ -288,7 +288,7 @@ export const ApiSetupPage: React.FC = () => {
       activeModel: selModel[activeProv] || AI_PROVIDERS.find(p => p.id === activeProv)?.models[0] || "",
     });
 
-    window.ghostly.saveSettings(useStore.getState().settings);
+    window.ibuddy.saveSettings(useStore.getState().settings);
     setAppScreen("audio-setup");
   };
 
@@ -298,25 +298,29 @@ export const ApiSetupPage: React.FC = () => {
       style={{ background: "transparent", pointerEvents: "none", userSelect: "none", fontFamily: "'Inter', -apple-system, sans-serif" }}
     >
       {/* Ambient glow */}
-      <div className="fixed inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(139,92,246,0.09) 0%, transparent 60%)" }} />
+      <div className="fixed inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(24,199,181,0.09) 0%, transparent 60%)" }} />
 
       <motion.div
+        data-ibuddy-surface="true"
         initial={{ opacity: 0, scale: 0.97, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-[310px] flex flex-col gap-2.5 relative z-10"
-        style={{ pointerEvents: "auto" }}
-        onMouseEnter={() => window.ghostly.enableMouse()}
+        className="no-drag w-full max-w-[370px] flex flex-col gap-2.5 relative z-10"
+        style={{ pointerEvents: "auto", WebkitAppRegion: "no-drag" }}
+        onMouseEnter={() => window.ibuddy.enableMouse()}
       >
         {/* ── Header ── */}
-        <div className="flex items-center justify-between px-0.5">
+        <div
+          className="drag-region flex items-center justify-between px-0.5 cursor-move"
+          style={{ WebkitAppRegion: "drag" }}
+        >
           <div className="flex items-center gap-2.5">
             <div
               className="w-9 h-9 rounded-[13px] flex items-center justify-center text-[17px] shrink-0"
               style={{
-                background: "linear-gradient(135deg, rgba(139,92,246,0.25), rgba(99,102,241,0.18))",
-                border: "1.5px solid rgba(139,92,246,0.4)",
-                boxShadow: "0 0 20px rgba(139,92,246,0.25), 0 4px 12px rgba(0,0,0,0.4)",
+                background: "linear-gradient(135deg, rgba(24,199,181,0.25), rgba(14,165,164,0.18))",
+                border: "1.5px solid rgba(24,199,181,0.4)",
+                boxShadow: "0 0 20px rgba(24,199,181,0.25), 0 4px 12px rgba(0,0,0,0.4)",
               }}
             >🔑</div>
             <div>
@@ -328,7 +332,7 @@ export const ApiSetupPage: React.FC = () => {
                     className="h-1 rounded-full transition-all"
                     style={{
                       width: i <= 2 ? "20px" : "10px",
-                      background: i <= 2 ? "rgba(139,92,246,0.8)" : "rgba(255,255,255,0.12)",
+                      background: i <= 2 ? "rgba(24,199,181,0.8)" : "rgba(255,255,255,0.12)",
                     }}
                   />
                 ))}
@@ -339,7 +343,7 @@ export const ApiSetupPage: React.FC = () => {
           <button
             onClick={() => setAppScreen("interview-setup")}
             className="flex items-center gap-2 text-[11px] font-extrabold px-3 py-2 rounded-xl transition-all"
-            style={{ background: "rgba(139,92,246,0.18)", border: "1px solid rgba(167,139,250,0.45)", color: "rgba(255,255,255,0.92)", boxShadow: "0 3px 12px rgba(0,0,0,0.3)" }}
+            style={{ background: "rgba(24,199,181,0.18)", border: "1px solid rgba(142,232,220,0.45)", color: "rgba(255,255,255,0.92)", boxShadow: "0 3px 12px rgba(0,0,0,0.3)" }}
             onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; e.currentTarget.style.color = "#fff"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
           >
@@ -350,9 +354,11 @@ export const ApiSetupPage: React.FC = () => {
 
         {/* ── Main Card ── */}
         <div
-          className="w-full rounded-[22px] overflow-hidden"
+          className="no-drag w-full rounded-[22px] overflow-hidden"
           style={{
-            background: "rgba(13,13,20,0.9)",
+            WebkitAppRegion: "no-drag",
+            pointerEvents: "auto",
+            background: "rgba(8,19,31,0.9)",
             backdropFilter: "blur(24px)",
             WebkitBackdropFilter: "blur(24px)",
             border: "1px solid rgba(255,255,255,0.08)",
@@ -360,7 +366,7 @@ export const ApiSetupPage: React.FC = () => {
           }}
         >
           {/* Accent bar */}
-          <div className="h-0.5" style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.7), rgba(99,102,241,0.5), transparent)" }} />
+          <div className="h-0.5" style={{ background: "linear-gradient(90deg, transparent, rgba(24,199,181,0.7), rgba(14,165,164,0.5), transparent)" }} />
 
           {/* ── Progress checklist ── */}
           <div className="px-4 pt-3.5 pb-3">
@@ -406,7 +412,10 @@ export const ApiSetupPage: React.FC = () => {
 
           <div className="mx-4 h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
 
-          <div className="px-3.5 pt-3 pb-2 flex flex-col gap-3 max-h-[55vh] overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+          <div
+            className="no-drag px-3.5 pt-3 pb-2 flex flex-col gap-3 max-h-[55vh] overflow-y-auto"
+            style={{ scrollbarWidth: "none", WebkitAppRegion: "no-drag", overscrollBehavior: "contain" }}
+          >
 
             {/* ── Deepgram ── */}
             <div className="flex flex-col gap-1.5">
@@ -416,11 +425,11 @@ export const ApiSetupPage: React.FC = () => {
                   <span className="px-1.5 py-0.5 rounded-full text-[7px] font-black" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.28)", color: "#f87171" }}>REQUIRED</span>
                 </label>
                 <button
-                  onClick={() => window.ghostly.openExternal("https://console.deepgram.com/signup")}
+                  onClick={() => window.ibuddy.openExternal("https://console.deepgram.com/signup")}
                   className="text-[8.5px] font-bold transition-colors"
-                  style={{ color: "rgba(139,92,246,0.7)", background: "none", border: "none" }}
-                  onMouseEnter={e => { e.currentTarget.style.color = "#a78bfa"; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = "rgba(139,92,246,0.7)"; }}
+                  style={{ color: "rgba(24,199,181,0.7)", background: "none", border: "none" }}
+                  onMouseEnter={e => { e.currentTarget.style.color = "#8ee8dc"; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = "rgba(24,199,181,0.7)"; }}
                 >Get Free Key ↗</button>
               </div>
               <div className="relative">
@@ -437,8 +446,8 @@ export const ApiSetupPage: React.FC = () => {
                     background: "rgba(255,255,255,0.04)",
                     border: hasDeepgram
                       ? "1px solid rgba(34,197,94,0.4)"
-                      : deepFocused ? "1px solid rgba(139,92,246,0.5)" : "1px solid rgba(255,255,255,0.08)",
-                    boxShadow: hasDeepgram ? "0 0 12px rgba(34,197,94,0.12)" : deepFocused ? "0 0 0 3px rgba(139,92,246,0.1)" : "none",
+                      : deepFocused ? "1px solid rgba(24,199,181,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                    boxShadow: hasDeepgram ? "0 0 12px rgba(34,197,94,0.12)" : deepFocused ? "0 0 0 3px rgba(24,199,181,0.1)" : "none",
                     color: "rgba(255,255,255,0.85)",
                   }}
                 />
@@ -460,17 +469,17 @@ export const ApiSetupPage: React.FC = () => {
                       ? "rgba(34,197,94,0.15)"
                       : testStatus["deepgram"]?.status === "invalid"
                         ? "rgba(239,68,68,0.15)"
-                        : "rgba(139,92,246,0.12)",
+                        : "rgba(24,199,181,0.12)",
                     border: testStatus["deepgram"]?.status === "valid"
                       ? "1px solid rgba(34,197,94,0.3)"
                       : testStatus["deepgram"]?.status === "invalid"
                         ? "1px solid rgba(239,68,68,0.3)"
-                        : "1px solid rgba(139,92,246,0.3)",
+                        : "1px solid rgba(24,199,181,0.3)",
                     color: testStatus["deepgram"]?.status === "valid"
                       ? "#4ade80"
                       : testStatus["deepgram"]?.status === "invalid"
                         ? "#f87171"
-                        : "#a78bfa",
+                        : "#8ee8dc",
                     cursor: !hasDeepgram ? "not-allowed" : "pointer",
                     opacity: !hasDeepgram ? 0.5 : 1,
                   }}
@@ -510,16 +519,16 @@ export const ApiSetupPage: React.FC = () => {
                       key={p.id}
                       className="rounded-[14px] overflow-hidden transition-all"
                       style={{
-                        background: isActive && hasKey ? "rgba(139,92,246,0.08)" : "rgba(255,255,255,0.04)",
+                        background: isActive && hasKey ? "rgba(24,199,181,0.08)" : "rgba(255,255,255,0.04)",
                         border: isActive && hasKey
-                          ? "1px solid rgba(139,92,246,0.3)"
+                          ? "1px solid rgba(24,199,181,0.3)"
                           : "1px solid rgba(255,255,255,0.07)",
-                        boxShadow: isActive && hasKey ? "0 0 16px rgba(139,92,246,0.12)" : "none",
+                        boxShadow: isActive && hasKey ? "0 0 16px rgba(24,199,181,0.12)" : "none",
                       }}
                     >
                       <div className="flex items-center gap-2.5 px-3 py-2.5">
                         <span className="text-[15px] shrink-0">{p.icon}</span>
-                        <span className="text-[11px] font-bold flex-1" style={{ color: isActive && hasKey ? "#a78bfa" : "rgba(255,255,255,0.7)" }}>
+                        <span className="text-[11px] font-bold flex-1" style={{ color: isActive && hasKey ? "#8ee8dc" : "rgba(255,255,255,0.7)" }}>
                           {p.label}
                         </span>
 
@@ -540,18 +549,18 @@ export const ApiSetupPage: React.FC = () => {
                             onClick={() => setActiveProv(p.id)}
                             className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase transition-all shrink-0"
                             style={{
-                              background: isActive ? "rgba(139,92,246,0.2)" : "rgba(255,255,255,0.05)",
-                              border: isActive ? "1px solid rgba(139,92,246,0.4)" : "1px solid rgba(255,255,255,0.1)",
-                              color: isActive ? "#a78bfa" : "rgba(255,255,255,0.35)",
+                              background: isActive ? "rgba(24,199,181,0.2)" : "rgba(255,255,255,0.05)",
+                              border: isActive ? "1px solid rgba(24,199,181,0.4)" : "1px solid rgba(255,255,255,0.1)",
+                              color: isActive ? "#8ee8dc" : "rgba(255,255,255,0.35)",
                             }}
                           >{isActive ? "Active" : "Use"}</button>
                         )}
 
                         {/* External link */}
                         <button
-                          onClick={() => window.ghostly.openExternal(p.url)}
+                          onClick={() => window.ibuddy.openExternal(p.url)}
                           className="text-[10px] font-bold transition-colors shrink-0 opacity-35 hover:opacity-80"
-                          style={{ background: "none", border: "none", color: "#a78bfa" }}
+                          style={{ background: "none", border: "none", color: "#8ee8dc" }}
                         >↗</button>
 
                         {/* Expand toggle */}
@@ -584,7 +593,7 @@ export const ApiSetupPage: React.FC = () => {
                                 boxShadow: hasKey ? "0 0 8px rgba(34,197,94,0.12)" : "none",
                                 color: "rgba(255,255,255,0.82)",
                               }}
-                              onFocus={e => { if (!hasKey) { e.currentTarget.style.borderColor = "rgba(139,92,246,0.5)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(139,92,246,0.1)"; } }}
+                              onFocus={e => { if (!hasKey) { e.currentTarget.style.borderColor = "rgba(24,199,181,0.5)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(24,199,181,0.1)"; } }}
                               onBlur={e => { if (!hasKey) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)"; e.currentTarget.style.boxShadow = "none"; } }}
                             />
                             <button
@@ -607,7 +616,7 @@ export const ApiSetupPage: React.FC = () => {
                                 }}
                               >
                                 {p.models.map(m => (
-                                  <option key={m} value={m} style={{ background: "#0d0d14" }}>{p.modelLabels[m] || m}</option>
+                                  <option key={m} value={m} style={{ background: "#08131f" }}>{p.modelLabels[m] || m}</option>
                                 ))}
                               </select>
                             </div>
@@ -625,17 +634,17 @@ export const ApiSetupPage: React.FC = () => {
                                   ? "rgba(34,197,94,0.15)"
                                   : testStatus[p.id]?.status === "invalid"
                                     ? "rgba(239,68,68,0.15)"
-                                    : "rgba(139,92,246,0.12)",
+                                    : "rgba(24,199,181,0.12)",
                                 border: testStatus[p.id]?.status === "valid"
                                   ? "1px solid rgba(34,197,94,0.3)"
                                   : testStatus[p.id]?.status === "invalid"
                                     ? "1px solid rgba(239,68,68,0.3)"
-                                    : "1px solid rgba(139,92,246,0.3)",
+                                    : "1px solid rgba(24,199,181,0.3)",
                                 color: testStatus[p.id]?.status === "valid"
                                   ? "#4ade80"
                                   : testStatus[p.id]?.status === "invalid"
                                     ? "#f87171"
-                                    : "#a78bfa",
+                                    : "#8ee8dc",
                                 cursor: !hasKey ? "not-allowed" : "pointer",
                                 opacity: !hasKey ? 0.5 : 1,
                               }}
@@ -667,10 +676,10 @@ export const ApiSetupPage: React.FC = () => {
               onClick={handleSave} disabled={!canProceed}
               className="w-full py-3 rounded-[14px] text-[12px] font-extrabold flex items-center justify-center gap-2 relative overflow-hidden transition-all"
               style={{
-                background: canProceed ? "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)" : "rgba(255,255,255,0.04)",
+                background: canProceed ? "linear-gradient(135deg, #18c7b5 0%, #0fae9f 100%)" : "rgba(255,255,255,0.04)",
                 color: canProceed ? "#fff" : "rgba(255,255,255,0.22)",
                 border: canProceed ? "none" : "1px solid rgba(255,255,255,0.07)",
-                boxShadow: canProceed ? "0 6px 24px rgba(139,92,246,0.45), 0 1px 0 rgba(255,255,255,0.2) inset" : "none",
+                boxShadow: canProceed ? "0 6px 24px rgba(24,199,181,0.45), 0 1px 0 rgba(255,255,255,0.2) inset" : "none",
                 cursor: canProceed ? "pointer" : "not-allowed",
               }}
             >

@@ -66,7 +66,7 @@ export class NvidiaProvider implements AIProvider {
         : [];
       if (!liveModels.length) {
         try {
-          const catalog = await window.ghostly.nvidiaListModels(apiKey);
+          const catalog = await window.ibuddy.nvidiaListModels(apiKey);
           if (catalog.ok) {
             const parsed = JSON.parse(catalog.data);
             liveModels = Array.isArray(parsed.data) ? parsed.data.map((item: { id?: string }) => item.id).filter(Boolean) : [];
@@ -82,14 +82,14 @@ export class NvidiaProvider implements AIProvider {
       if (!candidates.length) {
         throw new Error("NVIDIA reports no supported hosted chat models for this API key.");
       }
-      type NvidiaResult = Awaited<ReturnType<typeof window.ghostly.nvidiaApiCall>>;
+      type NvidiaResult = Awaited<ReturnType<typeof window.ibuddy.nvidiaApiCall>>;
       const failures: Array<{ model: string; result?: NvidiaResult; error?: unknown }> = [];
       let winner: { model: string; result: NvidiaResult };
       try {
         winner = await Promise.any(candidates.map(async (candidate) => {
           console.log("[NVIDIA] Racing model:", candidate);
           try {
-            const candidateResult = await window.ghostly.nvidiaApiCall(apiKey, makeBody(candidate));
+            const candidateResult = await window.ibuddy.nvidiaApiCall(apiKey, makeBody(candidate));
             if (!candidateResult.ok) {
               failures.push({ model: candidate, result: candidateResult });
               throw new Error(`HTTP ${candidateResult.status}`);

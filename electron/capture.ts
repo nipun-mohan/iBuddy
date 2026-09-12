@@ -7,7 +7,7 @@ export async function captureFullScreen(): Promise<string> {
   if (process.platform === "darwin") {
     const permission = systemPreferences.getMediaAccessStatus("screen");
     if (permission === "denied" || permission === "restricted") {
-      throw new Error("Screen Recording access is disabled. Enable Ghostly in System Settings → Privacy & Security → Screen & System Audio Recording, then quit and reopen Ghostly.");
+      throw new Error("Screen Recording access is disabled. Enable iBuddy in System Settings → Privacy & Security → Screen & System Audio Recording, then quit and reopen iBuddy.");
     }
   }
 
@@ -45,7 +45,7 @@ export async function captureFullScreen(): Promise<string> {
       await wait(400);
     }
 
-    throw new Error("macOS returned an empty screen image. Quit Ghostly completely and reopen it after granting Screen & System Audio Recording permission.");
+    throw new Error("macOS returned an empty screen image. Quit iBuddy completely and reopen it after granting Screen & System Audio Recording permission.");
   } finally {
     if (win && !win.isDestroyed()) {
       applyStealthMode(win);

@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Ad, useStore } from "../store/useStore";
 import { InterviewHistoryModal } from "../components/InterviewHistoryModal";
 
-const primaryKey = window.ghostly.platform === "darwin" ? "⌘" : "Ctrl+";
+const primaryKey = window.ibuddy.platform === "darwin" ? "⌘" : "Ctrl+";
 const SHORTCUTS = [
-  { keys: `${primaryKey}E`,  label: "Screenshot", color: "rgba(139,92,246,0.15)", border: "rgba(139,92,246,0.3)", textColor: "#a78bfa" },
+  { keys: `${primaryKey}E`,  label: "Screenshot", color: "rgba(24,199,181,0.15)", border: "rgba(24,199,181,0.3)", textColor: "#8ee8dc" },
   { keys: `${primaryKey}0`,  label: "Send AI",    color: "rgba(34,197,94,0.1)", border: "rgba(34,197,94,0.25)", textColor: "#4ade80" },
-  { keys: `${primaryKey}N`,  label: "Next Q",     color: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.25)", textColor: "#60a5fa" },
+  { keys: `${primaryKey}N`,  label: "Next Q",     color: "rgba(24,199,181,0.1)", border: "rgba(24,199,181,0.25)", textColor: "#5eead4" },
   { keys: `${primaryKey}B`,  label: "Show/Hide",  color: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.22)", textColor: "#fbbf24" },
   { keys: `${primaryKey}G`,  label: "Start Over", color: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.2)", textColor: "#f87171" },
-  { keys: `${primaryKey}↵`,  label: "Ask AI",     color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.28)", textColor: "#c4b5fd" },
+  { keys: `${primaryKey}↵`,  label: "Ask AI",     color: "rgba(24,199,181,0.12)", border: "rgba(24,199,181,0.28)", textColor: "#b8f3eb" },
 ];
 
 const escapeHtml = (v: string) =>
@@ -32,12 +32,11 @@ const AdNetworkPlacement: React.FC<{ ad: Ad }> = ({ ad }) => {
 };
 
 export const HomePage: React.FC = () => {
-  const { setAppScreen, user, ads } = useStore();
-  const [checkStatus, setCheckStatus] = useState<"idle" | "checking" | "latest">("idle");
+  const { setAppScreen, ads } = useStore();
   const [startStatus, setStartStatus] = useState<"idle" | "syncing">("idle");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyCount, setHistoryCount] = useState(0);
-  const version = window.ghostly.getVersion();
+  const version = window.ibuddy.getVersion();
 
   const activeAd = ads.find((a) => a.is_active) || null;
   const [gateAd, setGateAd] = useState<Ad | null>(null);
@@ -72,24 +71,19 @@ export const HomePage: React.FC = () => {
   };
 
   const handleContinueAfterAd = () => { setAdGate(false); setGateAd(null); setAppScreen("interview-setup"); };
-  const handleAdClick = () => { if (displayAd?.cta_url) window.ghostly.openExternal(displayAd.cta_url); setAdClicked(true); };
+  const handleAdClick = () => { if (displayAd?.cta_url) window.ibuddy.openExternal(displayAd.cta_url); setAdClicked(true); };
 
   useEffect(() => {
-    window.ghostly.getHistory().then((h: any[]) => setHistoryCount(Array.isArray(h) ? h.length : 0)).catch(() => {});
+    window.ibuddy.getHistory().then((h: any[]) => setHistoryCount(Array.isArray(h) ? h.length : 0)).catch(() => {});
   }, []);
   useEffect(() => {
-    if (!historyOpen) window.ghostly.getHistory().then((h: any[]) => setHistoryCount(Array.isArray(h) ? h.length : 0)).catch(() => {});
+    if (!historyOpen) window.ibuddy.getHistory().then((h: any[]) => setHistoryCount(Array.isArray(h) ? h.length : 0)).catch(() => {});
   }, [historyOpen]);
 
   useEffect(() => {
-    window.ghostly.enableMouse();
+    window.ibuddy.enableMouse();
+    window.ibuddy.setWindowLayout(historyOpen ? "interview" : "compact");
   }, [historyOpen]);
-
-  const handleCheckUpdate = () => {
-    setCheckStatus("checking");
-    window.ghostly.checkForUpdates();
-    setTimeout(() => setCheckStatus((s) => (s === "checking" ? "latest" : s)), 8000);
-  };
 
   return (
     <div
@@ -100,79 +94,86 @@ export const HomePage: React.FC = () => {
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(139,92,246,0.09) 0%, transparent 60%)",
+          background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(24,199,181,0.09) 0%, transparent 60%)",
         }}
       />
 
       <motion.div
+        data-ibuddy-surface="true"
         initial={{ opacity: 0, y: 12, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-[310px] flex flex-col gap-2 relative z-10"
-        style={{ pointerEvents: "auto" }}
-        onMouseEnter={() => window.ghostly.enableMouse()}
+        className="no-drag w-full max-w-[360px] flex flex-col gap-2 relative z-10"
+        style={{ pointerEvents: "auto", WebkitAppRegion: "no-drag" }}
+        onMouseEnter={() => window.ibuddy.enableMouse()}
       >
         {/* ── Header ── */}
-        <div className="flex items-center justify-between px-0.5">
+        <div
+          className="drag-region flex items-center justify-between px-0.5 cursor-move"
+          style={{ WebkitAppRegion: "drag" }}
+        >
           <div className="flex items-center gap-2.5">
             {/* Ghost icon */}
             <div className="relative shrink-0">
               <motion.div
                 animate={{ y: [0, -3, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="w-10 h-10 rounded-[13px] flex items-center justify-center text-[20px]"
+                className="w-10 h-10 rounded-[13px] flex items-center justify-center overflow-hidden"
                 style={{
-                  background: "linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(99,102,241,0.12) 100%)",
-                  border: "1.5px solid rgba(139,92,246,0.3)",
-                  boxShadow: "0 0 20px rgba(139,92,246,0.2), 0 4px 12px rgba(0,0,0,0.4)",
+                  background: "linear-gradient(135deg, rgba(24,199,181,0.2) 0%, rgba(14,165,164,0.12) 100%)",
+                  border: "1.5px solid rgba(24,199,181,0.3)",
+                  boxShadow: "0 0 20px rgba(24,199,181,0.2), 0 4px 12px rgba(0,0,0,0.4)",
                 }}
               >
-                👻
+                <img src="./favicon.png" alt="iBuddy" className="w-full h-full object-cover" />
               </motion.div>
               <motion.span
                 animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
                 className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
-                style={{ background: "#22c55e", border: "2px solid #0d0d14", boxShadow: "0 0 8px rgba(34,197,94,0.7)" }}
+                style={{ background: "#22c55e", border: "2px solid #08131f", boxShadow: "0 0 8px rgba(34,197,94,0.7)" }}
               />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-[16px] font-black tracking-tight text-white leading-none">Ghotly AI</h1>
+                <h1 className="text-[16px] font-black tracking-tight text-white leading-none">iBuddy</h1>
                 <span
                   className="px-1.5 py-0.5 rounded-full text-[8px] font-black"
-                  style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", color: "#a78bfa" }}
+                  style={{ background: "rgba(24,199,181,0.15)", border: "1px solid rgba(24,199,181,0.3)", color: "#8ee8dc" }}
                 >
                   v{version}
                 </span>
               </div>
               <p className="text-[9px] font-medium mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
-                Stealth AI Copilot
+                Your Interview Copilot
               </p>
             </div>
           </div>
           {/* Quit */}
           <button
-            onClick={() => window.ghostly.quit()}
-            className="w-7 h-7 flex items-center justify-center rounded-[9px] transition-all shrink-0"
+            type="button"
+            onClick={() => window.ibuddy.quit()}
+            title="Close iBuddy"
+            className="ibuddy-close no-drag w-9 h-9 flex items-center justify-center transition-all shrink-0 hover:scale-105"
             style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.07)",
-              color: "rgba(255,255,255,0.3)",
+              background: "linear-gradient(145deg, rgba(45,18,24,0.96), rgba(20,16,22,0.98))",
+              border: "1px solid rgba(248,113,113,0.55)",
+              color: "#f87171",
+              boxShadow: "0 4px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)",
             }}
             onMouseEnter={e => {
-              window.ghostly.enableMouse();
+              window.ibuddy.enableMouse();
               e.currentTarget.style.background = "rgba(239,68,68,0.15)";
               e.currentTarget.style.borderColor = "rgba(239,68,68,0.35)";
               e.currentTarget.style.color = "#f87171";
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
-              e.currentTarget.style.color = "rgba(255,255,255,0.3)";
+              e.currentTarget.style.background = "linear-gradient(145deg, rgba(45,18,24,0.96), rgba(20,16,22,0.98))";
+              e.currentTarget.style.borderColor = "rgba(248,113,113,0.55)";
+              e.currentTarget.style.color = "#f87171";
             }}
           >
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
@@ -180,9 +181,11 @@ export const HomePage: React.FC = () => {
 
         {/* ── Main Card ── */}
         <div
-          className="w-full rounded-[22px] overflow-hidden"
+          className="no-drag w-full rounded-[22px] overflow-hidden"
           style={{
-            background: "rgba(13,13,20,0.9)",
+            WebkitAppRegion: "no-drag",
+            pointerEvents: "auto",
+            background: "rgba(8,19,31,0.9)",
             backdropFilter: "blur(24px)",
             WebkitBackdropFilter: "blur(24px)",
             border: "1px solid rgba(255,255,255,0.08)",
@@ -192,7 +195,7 @@ export const HomePage: React.FC = () => {
           {/* ── Violet top accent ── */}
           <div
             className="h-0.5 w-full"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.7), rgba(99,102,241,0.5), transparent)" }}
+            style={{ background: "linear-gradient(90deg, transparent, rgba(24,199,181,0.7), rgba(14,165,164,0.5), transparent)" }}
           />
 
           {/* ── Action Buttons ── */}
@@ -206,13 +209,13 @@ export const HomePage: React.FC = () => {
               className="w-full py-3.5 rounded-[14px] text-[13px] font-extrabold flex items-center justify-center gap-2 relative overflow-hidden"
               style={{
                 background: startStatus === "syncing"
-                  ? "rgba(139,92,246,0.15)"
-                  : "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                  ? "rgba(24,199,181,0.15)"
+                  : "linear-gradient(135deg, #18c7b5 0%, #0fae9f 100%)",
                 color: "#fff",
                 border: "none",
                 boxShadow: startStatus === "syncing"
                   ? "none"
-                  : "0 6px 24px rgba(139,92,246,0.45), 0 1px 0 rgba(255,255,255,0.2) inset",
+                  : "0 6px 24px rgba(24,199,181,0.45), 0 1px 0 rgba(255,255,255,0.2) inset",
               }}
             >
               {/* Shimmer */}
@@ -241,46 +244,6 @@ export const HomePage: React.FC = () => {
 
             {/* Secondary row */}
             <div className="flex gap-2">
-              {/* Check Updates */}
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={handleCheckUpdate}
-                disabled={checkStatus === "checking"}
-                className="flex-1 py-2.5 rounded-[11px] text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all"
-                style={{
-                  background: checkStatus === "latest"
-                    ? "rgba(34,197,94,0.1)"
-                    : "rgba(255,255,255,0.04)",
-                  border: checkStatus === "latest"
-                    ? "1px solid rgba(34,197,94,0.3)"
-                    : "1px solid rgba(255,255,255,0.08)",
-                  color: checkStatus === "latest"
-                    ? "#4ade80"
-                    : "rgba(255,255,255,0.45)",
-                  boxShadow: checkStatus === "latest" ? "0 0 12px rgba(34,197,94,0.15)" : "none",
-                }}
-                onMouseEnter={e => {
-                  if (checkStatus !== "latest") {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.07)";
-                    e.currentTarget.style.color = "rgba(255,255,255,0.7)";
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (checkStatus !== "latest") {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-                    e.currentTarget.style.color = "rgba(255,255,255,0.45)";
-                  }
-                }}
-              >
-                {checkStatus === "checking" ? (
-                  <><svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Checking…</>
-                ) : checkStatus === "latest" ? (
-                  <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Up to Date</>
-                ) : (
-                  <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.21L21.5 8"/></svg>Update</>
-                )}
-              </motion.button>
-
               {/* History */}
               <motion.button
                 whileTap={{ scale: 0.97 }}
@@ -292,9 +255,9 @@ export const HomePage: React.FC = () => {
                   color: "rgba(255,255,255,0.45)",
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = "rgba(139,92,246,0.1)";
-                  e.currentTarget.style.borderColor = "rgba(139,92,246,0.25)";
-                  e.currentTarget.style.color = "#a78bfa";
+                  e.currentTarget.style.background = "rgba(24,199,181,0.1)";
+                  e.currentTarget.style.borderColor = "rgba(24,199,181,0.25)";
+                  e.currentTarget.style.color = "#8ee8dc";
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.background = "rgba(255,255,255,0.04)";
@@ -309,7 +272,7 @@ export const HomePage: React.FC = () => {
                 {historyCount > 0 && (
                   <span
                     className="px-1.5 py-0.5 rounded-full text-[7px] font-black"
-                    style={{ background: "rgba(139,92,246,0.2)", border: "1px solid rgba(139,92,246,0.35)", color: "#a78bfa" }}
+                    style={{ background: "rgba(24,199,181,0.2)", border: "1px solid rgba(24,199,181,0.35)", color: "#8ee8dc" }}
                   >
                     {historyCount}
                   </span>
@@ -317,94 +280,6 @@ export const HomePage: React.FC = () => {
               </motion.button>
             </div>
 
-            {/* Quick Links Row: Blog, Support, Demo Video */}
-            <div className="grid grid-cols-3 gap-1.5 pt-0.5">
-              {/* Blog */}
-              <motion.button
-                whileTap={{ scale: 0.96 }}
-                onClick={() => window.ghostly.openExternal("https://www.ghotlyai.in/blog/")}
-                className="py-2 px-1 rounded-[10px] text-[9.5px] font-bold flex items-center justify-center gap-1 transition-all"
-                style={{
-                  background: "rgba(249,115,22,0.06)",
-                  border: "1px solid rgba(249,115,22,0.2)",
-                  color: "#fdba74",
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = "rgba(249,115,22,0.14)";
-                  e.currentTarget.style.borderColor = "rgba(249,115,22,0.35)";
-                  e.currentTarget.style.color = "#ffedd5";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = "rgba(249,115,22,0.06)";
-                  e.currentTarget.style.borderColor = "rgba(249,115,22,0.2)";
-                  e.currentTarget.style.color = "#fdba74";
-                }}
-                title="Read latest updates & guides"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                </svg>
-                <span>Latest Blog</span>
-              </motion.button>
-
-              {/* Support */}
-              <motion.button
-                whileTap={{ scale: 0.96 }}
-                onClick={() => window.ghostly.openExternal("https://www.ghotlyai.in/support/")}
-                className="py-2 px-1 rounded-[10px] text-[9.5px] font-bold flex items-center justify-center gap-1 transition-all"
-                style={{
-                  background: "rgba(59,130,246,0.06)",
-                  border: "1px solid rgba(59,130,246,0.2)",
-                  color: "#93c5fd",
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = "rgba(59,130,246,0.14)";
-                  e.currentTarget.style.borderColor = "rgba(59,130,246,0.35)";
-                  e.currentTarget.style.color = "#dbeafe";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = "rgba(59,130,246,0.06)";
-                  e.currentTarget.style.borderColor = "rgba(59,130,246,0.2)";
-                  e.currentTarget.style.color = "#93c5fd";
-                }}
-                title="Get help or report a bug"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                  <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
-                  <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
-                </svg>
-                <span>Support</span>
-              </motion.button>
-
-              {/* Watch Demo */}
-              <motion.button
-                whileTap={{ scale: 0.96 }}
-                onClick={() => window.ghostly.openExternal("https://www.ghotlyai.in/#demo")}
-                className="py-2 px-1 rounded-[10px] text-[9.5px] font-bold flex items-center justify-center gap-1 transition-all"
-                style={{
-                  background: "rgba(168,85,247,0.06)",
-                  border: "1px solid rgba(168,85,247,0.2)",
-                  color: "#d8b4fe",
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = "rgba(168,85,247,0.14)";
-                  e.currentTarget.style.borderColor = "rgba(168,85,247,0.35)";
-                  e.currentTarget.style.color = "#f3e8ff";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = "rgba(168,85,247,0.06)";
-                  e.currentTarget.style.borderColor = "rgba(168,85,247,0.2)";
-                  e.currentTarget.style.color = "#d8b4fe";
-                }}
-                title="Watch app demo video"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5 3 19 12 5 21 5 3"/>
-                </svg>
-                <span>Demo Video</span>
-              </motion.button>
-            </div>
           </div>
 
           {/* ── Divider ── */}
@@ -441,41 +316,6 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* ── Divider ── */}
-          <div className="mx-3 h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
-
-          {/* ── User row ── */}
-          <div className="px-3 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              {/* Avatar */}
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 overflow-hidden"
-                style={{
-                  border: "1.5px solid rgba(139,92,246,0.35)",
-                  boxShadow: "0 0 12px rgba(139,92,246,0.2)",
-                }}
-              >
-                {user?.picture ? (
-                  <img src={user.picture} alt={user.name} className="w-full h-full object-cover" />
-                ) : (
-                  <span
-                    className="text-[11px] font-black w-full h-full flex items-center justify-center"
-                    style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.3), rgba(99,102,241,0.2))", color: "#a78bfa" }}
-                  >
-                    {user?.name?.[0]?.toUpperCase() || "U"}
-                  </span>
-                )}
-              </div>
-              <div>
-                <p className="text-[10px] font-bold leading-none" style={{ color: "rgba(255,255,255,0.78)" }}>
-                  {user?.name || "Guest"}
-                </p>
-                <p className="text-[8px] mt-0.5 font-semibold" style={{ color: "rgba(167,139,250,0.55)" }}>
-                  Ad-supported · Free
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </motion.div>
 
@@ -489,14 +329,14 @@ export const HomePage: React.FC = () => {
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-[9999] flex items-center justify-center"
             style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)", pointerEvents: "auto" }}
-            onMouseEnter={() => window.ghostly.enableMouse()}
+            onMouseEnter={() => window.ibuddy.enableMouse()}
           >
             <motion.div
               initial={{ scale: 0.92, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.92, y: 20, opacity: 0 }} transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               className="w-[320px] rounded-[24px] overflow-hidden flex flex-col gap-0"
               style={{
-                background: "rgba(13,13,20,0.96)",
+                background: "rgba(8,19,31,0.96)",
                 backdropFilter: "blur(28px)",
                 border: "1px solid rgba(255,255,255,0.1)",
                 boxShadow: "0 32px 80px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.07) inset",
@@ -505,7 +345,7 @@ export const HomePage: React.FC = () => {
               {/* Accent top bar */}
               <div
                 className="h-0.5"
-                style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.7), rgba(99,102,241,0.5), transparent)" }}
+                style={{ background: "linear-gradient(90deg, transparent, rgba(24,199,181,0.7), rgba(14,165,164,0.5), transparent)" }}
               />
 
               <div className="p-4 flex flex-col gap-3">
@@ -513,7 +353,7 @@ export const HomePage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div
                     className="px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.12em]"
-                    style={{ background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.3)", color: "#a78bfa" }}
+                    style={{ background: "rgba(24,199,181,0.12)", border: "1px solid rgba(24,199,181,0.3)", color: "#8ee8dc" }}
                   >
                     📢 Sponsor
                   </div>
@@ -562,7 +402,7 @@ export const HomePage: React.FC = () => {
                   <p className="text-[9px] font-semibold leading-relaxed" style={{ color: adClicked ? "#4ade80" : "rgba(255,255,255,0.45)" }}>
                     {adClicked
                       ? "Sponsor visited! Tap Continue to start your interview."
-                      : "Ghotly AI is free through sponsors. Tap below once to unlock your session."}
+                      : "iBuddy is free through sponsors. Tap below once to unlock your session."}
                   </p>
                 </div>
 
@@ -576,12 +416,12 @@ export const HomePage: React.FC = () => {
                     style={{
                       background: adClicked
                         ? "rgba(34,197,94,0.1)"
-                        : "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                        : "linear-gradient(135deg, #18c7b5 0%, #0fae9f 100%)",
                       color: adClicked ? "#4ade80" : "#fff",
                       border: adClicked ? "1px solid rgba(34,197,94,0.25)" : "none",
                       boxShadow: adClicked
                         ? "0 0 16px rgba(34,197,94,0.15)"
-                        : "0 6px 20px rgba(139,92,246,0.4), 0 1px 0 rgba(255,255,255,0.18) inset",
+                        : "0 6px 20px rgba(24,199,181,0.4), 0 1px 0 rgba(255,255,255,0.18) inset",
                       cursor: adClicked ? "default" : "pointer",
                     }}
                   >
@@ -605,9 +445,9 @@ export const HomePage: React.FC = () => {
                     whileTap={adClicked || skipCountdown === 0 ? { scale: 0.98 } : {}}
                     className="w-full py-3 rounded-[13px] text-[12px] font-extrabold flex items-center justify-center gap-2 transition-all"
                     style={{
-                      background: adClicked || skipCountdown === 0 ? "rgba(139,92,246,0.15)" : "rgba(255,255,255,0.03)",
-                      border: adClicked || skipCountdown === 0 ? "1px solid rgba(139,92,246,0.35)" : "1px solid rgba(255,255,255,0.08)",
-                      color: adClicked || skipCountdown === 0 ? "#a78bfa" : "rgba(255,255,255,0.2)",
+                      background: adClicked || skipCountdown === 0 ? "rgba(24,199,181,0.15)" : "rgba(255,255,255,0.03)",
+                      border: adClicked || skipCountdown === 0 ? "1px solid rgba(24,199,181,0.35)" : "1px solid rgba(255,255,255,0.08)",
+                      color: adClicked || skipCountdown === 0 ? "#8ee8dc" : "rgba(255,255,255,0.2)",
                       cursor: adClicked || skipCountdown === 0 ? "pointer" : "not-allowed",
                     }}
                   >

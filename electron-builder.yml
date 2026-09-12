@@ -1,5 +1,5 @@
-appId: com.ghostly.app
-productName: Ghostly
+appId: com.ibuddy.app
+productName: iBuddy
 npmRebuild: false
 afterPack: build/after-pack.cjs
 directories:
@@ -8,7 +8,7 @@ directories:
 publish:
   provider: github
   owner: nipun-mohan
-  repo: Ghostly-AI
+  repo: iBuddy
   releaseType: release
 files:
   - "out/**"
@@ -20,15 +20,15 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: Ghostly
+  executableName: iBuddy
   target:
     - target: nsis
       arch:
         - x64
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
-  shortcutName: Ghostly
-  uninstallDisplayName: Ghostly
+  shortcutName: iBuddy
+  uninstallDisplayName: iBuddy
   createDesktopShortcut: always
 mac:
   category: public.app-category.productivity
@@ -39,12 +39,12 @@ mac:
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
-    NSCameraUsageDescription: "Ghostly uses the camera only when a feature explicitly requests it."
-    NSMicrophoneUsageDescription: "Ghostly uses the microphone to transcribe interview audio in real time."
-    NSAudioCaptureUsageDescription: "Ghostly captures system audio so interview questions can be transcribed in real time."
-    NSScreenCaptureUsageDescription: "Ghostly captures the screen when you request AI screen analysis."
-    NSDocumentsFolderUsageDescription: "Ghostly accesses documents only when you select them."
-    NSDownloadsFolderUsageDescription: "Ghostly accesses downloads only when you select them."
+    NSCameraUsageDescription: "iBuddy uses the camera only when a feature explicitly requests it."
+    NSMicrophoneUsageDescription: "iBuddy uses the microphone to transcribe interview audio in real time."
+    NSAudioCaptureUsageDescription: "iBuddy captures system audio so interview questions can be transcribed in real time."
+    NSScreenCaptureUsageDescription: "iBuddy captures the screen when you request AI screen analysis."
+    NSDocumentsFolderUsageDescription: "iBuddy accesses documents only when you select them."
+    NSDownloadsFolderUsageDescription: "iBuddy accesses downloads only when you select them."
   notarize: false
   target:
     - target: dmg
@@ -62,7 +62,7 @@ linux:
     - target: AppImage
       arch:
         - x64
-  maintainer: ghostly
+  maintainer: iBuddy
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}

@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import colors from "tailwindcss/colors";
 
 const config: Config = {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
@@ -6,19 +7,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        accent: "#00FF88",
-        ghostly: {
-          50: "#f0f4ff",
-          100: "#dbe4ff",
-          200: "#bac8ff",
-          300: "#91a7ff",
-          400: "#748ffc",
-          500: "#5c7cfa",
-          600: "#4c6ef5",
-          700: "#4263eb",
-          800: "#3b5bdb",
-          900: "#364fc7",
-          950: "#1e3a8a",
+        // iBuddy uses teal for primary/AI actions and coral only for warm accents.
+        // Legacy aliases keep every existing component on the same design system.
+        violet: colors.teal,
+        purple: colors.teal,
+        blue: colors.teal,
+        accent: "#FF7A6B",
+        ibuddy: {
+          50: "#effdfb",
+          100: "#ccfbf5",
+          200: "#99f6e9",
+          300: "#5eead4",
+          400: "#2dd4bf",
+          500: "#18c7b5",
+          600: "#0fae9f",
+          700: "#0f8f85",
+          800: "#116f69",
+          900: "#135b57",
+          950: "#082f2c",
         },
         dark: {
           50: "#f8fafc",

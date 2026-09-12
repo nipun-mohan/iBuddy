@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "../store/useStore";
+import type { InterviewEvaluation, QAPair } from "../store/useStore";
 import { getProvider } from "../lib/ai";
 import { buildPrompt, buildSessionContext, buildLiveInterviewPrompt } from "../lib/prompts";
 import { v4 as uuidv4 } from "uuid";
@@ -80,7 +81,7 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
   return (
     <button
       onClick={async () => {
-        try { await window.ghostly.copyText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
+        try { await window.ibuddy.copyText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
       }}
       className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold transition-all"
       style={copied
@@ -496,7 +497,7 @@ export const Home: React.FC = () => {
       audio.clearLiveText();
       clearScreenshots();
       setError(null);
-      const rawB64 = await window.ghostly.captureFullscreen();
+      const rawB64 = await window.ibuddy.captureFullscreen();
       const compressedB64 = await compressScreenshot(rawB64, 800, 0.7);
       addScreenshot(compressedB64);
       const screenPrompt = buildPrompt(settings.interviewType, settings.language);
@@ -535,7 +536,7 @@ export const Home: React.FC = () => {
           category: supportCategory,
           subject: supportSubject.trim(),
           message: supportMessage.trim(),
-          app_version: window.ghostly.getVersion(),
+          app_version: window.ibuddy.getVersion(),
           page: activeTab,
           interview_type: settings.interviewType,
           language: settings.language,
@@ -683,18 +684,72 @@ export const Home: React.FC = () => {
       durationSeconds: duration,
       featuresUsed: Array.from(featuresUsedRef.current) as ("ai-answer" | "screen" | "chat")[],
       qaHistory: qaList,
+      evaluationStatus: "generating" as const,
     };
     addToHistory(sessionEntry);
     try {
-      const h = await window.ghostly.getHistory();
+      const h = await window.ibuddy.getHistory();
       // Deduplicate: remove any existing entry with same session start timestamp
       const filtered = h.filter((x: any) => x.timestamp !== sessionEntry.timestamp && x.id !== sessionEntry.id);
-      await window.ghostly.saveHistory([sessionEntry, ...filtered]);
+      await window.ibuddy.saveHistory([sessionEntry, ...filtered]);
     } catch { /* best-effort */ }
-    // Reset tracking for next session
+
+    // Release the active-session refs before the asynchronous report call so a
+    // new interview can start immediately without its tracking being overwritten.
     sessionStartRef.current = Date.now();
     featuresUsedRef.current = new Set();
     sessionQARef.current = [];
+
+    // Generate and persist one compact evaluation after the call. This grades
+    // only the captured Q&A evidence and says so explicitly; it does not pretend
+    // to have heard candidate speech that was not captured separately.
+    try {
+      const apiKey = settings.apiKeys[settings.activeProvider];
+      if (!apiKey) throw new Error("No provider key available for evaluation");
+      const evidence = (qaList as QAPair[]).slice(0, 20).map((qa, index) =>
+        `Exchange ${index + 1} [${qa.feature}]\nQuestion: ${qa.question.slice(0, 1200)}\nCaptured answer: ${qa.answer.slice(0, 2400)}`
+      ).join("\n\n");
+      const evaluationPrompt = `Evaluate this interview call using ONLY the captured Q&A below. Score answer quality, coverage, relevance, structure, and technical correctness. Do not claim you observed delivery, body language, confidence, or candidate speech not present in the evidence. Return ONLY valid JSON with this exact shape:\n{"overallScore":7.5,"summary":"...","basis":"Assessment based on captured Q&A and generated answer content.","sections":[{"name":"Technical accuracy","score":8,"howYouDid":"...","missed":["..."],"improvements":["..."]}]}\nRules: scores are numbers from 0 to 10; create 3-6 meaningful sections appropriate to the selected round; be specific and concise; missed/improvements are arrays of short strings.\n\nRound: ${interviewSession?.roundName || settings.interviewType}\nRole: ${interviewSession?.position || "Not provided"}\n\n${evidence}`;
+      const provider = getProvider(settings.activeProvider);
+      const stream = provider.streamSolution({
+        prompt: evaluationPrompt,
+        model: settings.activeModel,
+        apiKey,
+        maxTokens: 1800,
+        customInstructions: "Return only the requested evaluation JSON. Do not use markdown fences.",
+      });
+      let raw = "";
+      for await (const chunk of stream) raw += chunk;
+      const jsonText = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      const parsed = JSON.parse(jsonText);
+      const clamp = (value: unknown) => Math.max(0, Math.min(10, Number(value) || 0));
+      const evaluation: InterviewEvaluation = {
+        overallScore: clamp(parsed.overallScore),
+        summary: String(parsed.summary || "Evaluation completed."),
+        basis: String(parsed.basis || "Assessment based on captured Q&A and generated answer content."),
+        sections: Array.isArray(parsed.sections) ? parsed.sections.slice(0, 8).map((section: any) => ({
+          name: String(section.name || "Interview section"),
+          score: clamp(section.score),
+          howYouDid: String(section.howYouDid || ""),
+          missed: Array.isArray(section.missed) ? section.missed.map(String).slice(0, 6) : [],
+          improvements: Array.isArray(section.improvements) ? section.improvements.map(String).slice(0, 6) : [],
+        })) : [],
+        generatedAt: Date.now(),
+      };
+      const saved = await window.ibuddy.getHistory();
+      const updated = saved.map((item: any) => item.id === sessionEntry.id
+        ? { ...item, evaluation, evaluationStatus: "complete" }
+        : item);
+      await window.ibuddy.saveHistory(updated);
+      useStore.getState().setHistory(updated);
+    } catch {
+      const saved = await window.ibuddy.getHistory().catch(() => []);
+      const updated = saved.map((item: any) => item.id === sessionEntry.id
+        ? { ...item, evaluationStatus: "failed" }
+        : item);
+      await window.ibuddy.saveHistory(updated).catch(() => {});
+      useStore.getState().setHistory(updated);
+    }
   }, [settings, interviewSession, addToHistory]);
 
   const handleRestart = useCallback(() => {
@@ -778,9 +833,9 @@ export const Home: React.FC = () => {
 
   // Force show window, opacity 1, and enable mouse on mount when entering interview screen
   useEffect(() => {
-    window.ghostly.setOpacity(1);
-    window.ghostly.show();
-    window.ghostly.enableMouse();
+    window.ibuddy.setOpacity(1);
+    window.ibuddy.show();
+    window.ibuddy.enableMouse();
   }, []);
 
   // Hotkeys — all of these arrive as IPC events from Electron's system-wide
@@ -795,23 +850,23 @@ export const Home: React.FC = () => {
     // here. Compress to 800px/70% JPEG to match handleScreenAnalysis's payload
     // size (this used to be sent uncompressed for the hotkey path only, several
     // times larger than the button-triggered flow).
-    const offScreenshot = window.ghostly.onScreenshot(async (b64) => {
+    const offScreenshot = window.ibuddy.onScreenshot(async (b64) => {
       const compressed = await compressScreenshot(b64, 800, 0.7);
       addScreenshot(compressed);
     });
     // Ctrl+Enter — solve whatever's already captured/transcribed. If it's a
     // screenshot-driven solve, use the same interview-type/language prompt
     // handleScreenAnalysis builds instead of an empty one.
-    const offSolve = window.ghostly.onSolve(async () => {
+    const offSolve = window.ibuddy.onSolve(async () => {
       const followUp = screenshotsRef.current.length > 0
         ? buildPrompt(settings.interviewType, settings.language)
         : undefined;
       await runAIStream(screenshotsRef.current, undefined, followUp);
     });
-    const offStartOver = window.ghostly.onStartOver(handleRestart);
+    const offStartOver = window.ibuddy.onStartOver(handleRestart);
 
     // Ctrl+N — Next Question (only meaningful while live-listening)
-    const offNextQuestion = window.ghostly.onNextQuestion(() => {
+    const offNextQuestion = window.ibuddy.onNextQuestion(() => {
       if (!liveActive) return;
       if (currentSolution && pendingTranscript) {
         setQaPages(prev => [...prev, { question: pendingTranscript, answer: currentSolution }]);
@@ -824,20 +879,20 @@ export const Home: React.FC = () => {
     });
 
     // Ctrl+0 — Manual Send (skip waiting for silence detection)
-    const offManualSend = window.ghostly.onManualSend(() => {
+    const offManualSend = window.ibuddy.onManualSend(() => {
       if (liveActive && audio.liveText.trim() && !isStreaming) {
         handleManualSend();
       }
     });
 
     // Ctrl+8 — Previous Question page
-    const offPrevQuestion = window.ghostly.onPrevQuestion(() => {
+    const offPrevQuestion = window.ibuddy.onPrevQuestion(() => {
       setUserNavigated(true);
       setPageIndex(p => Math.max(0, p - 1));
     });
 
     // Ctrl+2 — Next Question page
-    const offNextQuestionPage = window.ghostly.onNextQuestionPage(() => {
+    const offNextQuestionPage = window.ibuddy.onNextQuestionPage(() => {
       setUserNavigated(true);
       setPageIndex(p => Math.min(Math.max(0, totalPages - 1), p + 1));
     });
@@ -860,7 +915,7 @@ export const Home: React.FC = () => {
 
       {/* ── TopBar ── */}
       <div className="flex-none">
-        <TopBar
+        <div data-ibuddy-surface="true"><TopBar
           onOpenSettings={() => setSettingsOpen(true)}
           settingsOpen={settingsOpen}
           isLiveActive={liveActive}
@@ -872,17 +927,25 @@ export const Home: React.FC = () => {
           showNext={liveActive && !isStreaming && !!currentSolution}
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          onStop={() => { saveSessionToHistory(); handleRestart(); useStore.getState().setAppScreen("home"); setTimeout(() => window.ghostly.enableMouse(), 50); setTimeout(() => window.ghostly.enableMouse(), 300); }}
+          onStop={async () => {
+            // Keep the current response rendered while history is persisted. Clearing
+            // it first produced a visible empty-frame flash before Home mounted.
+            await saveSessionToHistory();
+            await window.ibuddy.prepareHomeLayout();
+            useStore.getState().setAppScreen("home");
+            setTimeout(() => window.ibuddy.enableMouse(), 50);
+            setTimeout(() => window.ibuddy.enableMouse(), 300);
+          }}
           autoAI={autoAI}
           onToggleAutoAI={() => setAutoAI(v => {
             const next = !v;
             updateSettings({ autoAI: next });
-            setTimeout(() => window.ghostly.saveSettings(useStore.getState().settings), 0);
+            setTimeout(() => window.ibuddy.saveSettings(useStore.getState().settings), 0);
             return next;
           })}
           isMicMuted={audio.isMicMuted}
           onToggleMicMute={audio.toggleMicMute}
-        />
+        /></div>
       </div>
 
       {/* ── Settings Panel ── */}
@@ -898,11 +961,11 @@ export const Home: React.FC = () => {
       {/* ── Main Content ── */}
       {!settingsOpen && (
         <div className="flex-1 min-h-0 flex justify-center px-3 pb-3 mt-1 pointer-events-auto overflow-hidden">
-          <div className="w-full flex flex-col h-full">
+          <div data-ibuddy-surface="true" className="w-full flex flex-col h-full">
             <div
               className="flex-1 min-h-0 flex flex-col rounded-2xl overflow-hidden border border-white/[0.07] shadow-2xl"
               style={{ background: "rgba(16,16,18,0.94)", backdropFilter: "blur(28px)" }}
-              onMouseEnter={() => window.ghostly.enableMouse()}
+              onMouseEnter={() => window.ibuddy.enableMouse()}
             >
               {/* ── Card Header ── */}
               <div className="flex items-center justify-between px-4 h-11 border-b border-white/[0.06] flex-shrink-0"
@@ -931,7 +994,7 @@ export const Home: React.FC = () => {
                         <span className="text-[9px] text-white/25 uppercase tracking-wider">Opacity</span>
                         <input type="range" min="20" max="100"
                           value={Math.round((settings.opacity ?? 1) * 100)}
-                          onChange={(e) => { const v = parseInt(e.target.value)/100; updateSettings({opacity:v}); window.ghostly.setOpacity(v); }}
+                          onChange={(e) => { const v = parseInt(e.target.value)/100; updateSettings({opacity:v}); window.ibuddy.setOpacity(v); }}
                           className="w-14 h-1 accent-orange-400 cursor-pointer" />
                       </div>
                     </div>
@@ -956,7 +1019,7 @@ export const Home: React.FC = () => {
                         onChange={(e) => {
                           const v = parseInt(e.target.value) / 100;
                           updateSettings({ opacity: v });
-                          window.ghostly.setOpacity(v);
+                          window.ibuddy.setOpacity(v);
                         }}
                         className="w-14 h-1 accent-orange-400 cursor-pointer" />
                     </div>
@@ -993,7 +1056,7 @@ export const Home: React.FC = () => {
                   <div className="flex flex-col items-center gap-5 py-2">
                     <div className="text-center">
                       <div className="text-3xl mb-1.5">💛</div>
-                      <p className="text-[15px] font-bold text-white/80 font-sans">Support Ghostly AI</p>
+                      <p className="text-[15px] font-bold text-white/80 font-sans">Support iBuddy</p>
                       <p className="text-[12px] text-white/35 font-sans mt-1 leading-relaxed">
                         If this tool helped you crack an interview,<br />consider buying the developer a coffee! ☕
                       </p>
@@ -1006,7 +1069,7 @@ export const Home: React.FC = () => {
                         style={{ border: "2px solid rgba(235,146,69,0.5)" }} />
                       <div>
                         <p className="text-[13px] font-bold text-white">Mahesh Shelke</p>
-                        <p className="text-[11px] text-white/40 font-sans">Developer · Ghostly AI</p>
+                        <p className="text-[11px] text-white/40 font-sans">Developer · iBuddy</p>
                       </div>
                     </div>
 
@@ -1026,7 +1089,7 @@ export const Home: React.FC = () => {
                         </div>
                         <button
                           onClick={() => {
-                            window.ghostly.copyText("mahishelke0505@ybl");
+                            window.ibuddy.copyText("mahishelke0505@ybl");
                             setCopied(true);
                             setTimeout(() => setCopied(false), 2000);
                           }}
@@ -1052,7 +1115,7 @@ export const Home: React.FC = () => {
                     {chatMessages.length === 0 ? (
                       <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
                         <div className="text-4xl">💬</div>
-                        <p className="text-[14px] font-semibold text-white/40 font-sans">Chat with Ghostly AI</p>
+                        <p className="text-[14px] font-semibold text-white/40 font-sans">Chat with iBuddy</p>
                         <p className="text-[12px] text-white/20 font-sans">Ask anything — coding, interview prep, explanations...</p>
                       </div>
                     ) : (
@@ -1062,7 +1125,7 @@ export const Home: React.FC = () => {
                             <span className={`text-[9px] font-bold uppercase tracking-widest ${
                               msg.role === "user" ? "text-[#eb9245]/60" : "text-blue-400/60"
                             }`}>
-                              {msg.role === "user" ? "You" : "👻 Ghostly AI"}
+                              {msg.role === "user" ? "You" : "✦ iBuddy"}
                             </span>
                             {msg.role === "user" ? (
                               <div className="max-w-[85%] bg-[#eb9245]/15 border border-[#eb9245]/20 rounded-2xl rounded-tr-sm px-4 py-2.5 text-[13px] text-white/85 font-sans leading-relaxed">
@@ -1092,9 +1155,9 @@ export const Home: React.FC = () => {
                     /* Empty state */
                     <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                       className="h-full flex flex-col items-center justify-center gap-4 text-center py-8">
-                      <div className="text-5xl">👻</div>
+                      <img src="./favicon.png" alt="iBuddy" className="w-14 h-14 rounded-2xl shadow-xl" />
                       <div>
-                        <p className="text-[15px] font-semibold text-white/50 font-sans mb-2">Ghostly AI is ready</p>
+                        <p className="text-[15px] font-semibold text-white/50 font-sans mb-2">iBuddy is ready</p>
                         <p className="text-[12px] text-white/25 font-sans leading-relaxed">
                           Click <span className="text-[#eb9245] font-semibold">AI Answer</span> to start live transcription<br />
                           or <span className="text-white/40 font-semibold">Analyze Screen</span> to capture & solve
@@ -1145,7 +1208,7 @@ export const Home: React.FC = () => {
                         </div>
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-bold text-violet-400/80 uppercase tracking-widest">🤖 Ghostly AI Response</span>
+                            <span className="text-[10px] font-bold text-violet-400/80 uppercase tracking-widest">🤖 iBuddy Response</span>
                             <CopyButton text={answer} />
                           </div>
                           <div className="rounded-xl overflow-hidden border border-violet-500/15 shadow-2xl"
@@ -1174,7 +1237,7 @@ export const Home: React.FC = () => {
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-bold text-violet-400/80 uppercase tracking-widest">🤖 Ghostly AI Response</span>
+                            <span className="text-[10px] font-bold text-violet-400/80 uppercase tracking-widest">🤖 iBuddy Response</span>
                             {isStreaming && <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />}
                           </div>
                           {!isStreaming && <CopyButton text={liveAnswer} />}
@@ -1205,7 +1268,7 @@ export const Home: React.FC = () => {
                     <input
                       type="text" value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
-                      placeholder="Ask Ghostly AI anything..."
+                      placeholder="Ask iBuddy anything..."
                       disabled={chatStreaming}
                       className="w-full bg-white/[0.05] border border-white/[0.07] hover:border-white/[0.14] focus:border-[#eb9245]/50 rounded-xl pl-4 pr-12 py-2.5 text-[13px] font-sans text-white/90 placeholder:text-white/25 focus:outline-none transition-colors disabled:opacity-40"
                     />

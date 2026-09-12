@@ -24,7 +24,7 @@ const App: React.FC = () => {
   const [appReady, setAppReady] = React.useState(false);
 
   const applyAccountPayload = async (data: any) => {
-    const savedAds = await window.ghostly.getAds().catch(() => []);
+    const savedAds = await window.ibuddy.getAds().catch(() => []);
     const currentAds = useStore.getState().ads;
     const latestAds = Array.isArray(data.ads)
       ? data.ads
@@ -34,25 +34,25 @@ const App: React.FC = () => {
           ? savedAds
           : [];
     useStore.getState().setAds(latestAds);
-    await window.ghostly.saveAds(latestAds);
+    await window.ibuddy.saveAds(latestAds);
   };
 
   const handleBlockedAuth = async () => {
-    await window.ghostly.logoutUser();
+    await window.ibuddy.logoutUser();
     useStore.getState().setUser(null);
     useStore.getState().setAds([]);
     useStore.getState().setAppScreen("home");
   };
 
   useEffect(() => {
-    const offAvailable  = window.ghostly.onUpdateAvailable((v) => { setUpdateVersion(v); setUpdateState("available"); });
-    const offProgress   = window.ghostly.onUpdateProgress((p) => { setUpdatePercent(p); setUpdateState("downloading"); setShowFullScreenAnimation(true); });
-    const offDownloaded = window.ghostly.onUpdateDownloaded(() => {
+    const offAvailable  = window.ibuddy.onUpdateAvailable((v) => { setUpdateVersion(v); setUpdateState("available"); });
+    const offProgress   = window.ibuddy.onUpdateProgress((p) => { setUpdatePercent(p); setUpdateState("downloading"); setShowFullScreenAnimation(true); });
+    const offDownloaded = window.ibuddy.onUpdateDownloaded(() => {
       setUpdateState("installing");
       setTimeout(() => { setUpdateState("ready"); setTimeout(() => setShowFullScreenAnimation(false), 3000); }, 2000);
     });
-    const offNotAvail = window.ghostly.onUpdateNotAvailable(() => setUpdateState("idle"));
-    const offError    = window.ghostly.onUpdateError((msg) => {
+    const offNotAvail = window.ibuddy.onUpdateNotAvailable(() => setUpdateState("idle"));
+    const offError    = window.ibuddy.onUpdateError((msg) => {
       const safeMsg = String(msg).replace(/[\r\n]/g, " ").slice(0, 200);
       console.error("[Update]", safeMsg);
       setUpdateError(safeMsg);
@@ -67,10 +67,10 @@ const App: React.FC = () => {
     const loadData = async () => {
       try {
         const [savedSettings, savedHistory, savedUser, savedAds] = await Promise.all([
-          window.ghostly.getSettings(),
-          window.ghostly.getHistory(),
-          window.ghostly.getUser(),
-          window.ghostly.getAds(),
+          window.ibuddy.getSettings(),
+          window.ibuddy.getHistory(),
+          window.ibuddy.getUser(),
+          window.ibuddy.getAds(),
         ]);
         if (savedSettings) {
           const merged = {
@@ -88,7 +88,7 @@ const App: React.FC = () => {
             deepgramApiKey: import.meta.env.VITE_DEEPGRAM_API_KEY || savedSettings.deepgramApiKey || "",
           };
           setSettings(merged);
-          window.ghostly.setOpacity(1);
+          window.ibuddy.setOpacity(1);
         }
         if (savedHistory) setHistory(savedHistory);
         if (savedUser) setUser(savedUser);
@@ -102,9 +102,10 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    window.ghostly.enableMouse();
-    const t1 = setTimeout(() => window.ghostly.enableMouse(), 100);
-    const t2 = setTimeout(() => window.ghostly.enableMouse(), 400);
+    window.ibuddy.enableMouse();
+    window.ibuddy.setWindowLayout(appScreen === "interview" ? "interview" : "compact");
+    const t1 = setTimeout(() => window.ibuddy.enableMouse(), 100);
+    const t2 = setTimeout(() => window.ibuddy.enableMouse(), 400);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [appScreen]);
 
@@ -116,14 +117,14 @@ const App: React.FC = () => {
         });
         if (res.status === 403) {
           await handleBlockedAuth();
-          alert("Your Ghotly AI account has been blocked. Please contact support if this is a mistake.");
+          alert("Your iBuddy account has been blocked. Please contact support if this is a mistake.");
           return;
         }
         if (!res.ok) return;
         const data = await res.json();
         const fullUser = { ...user, idToken: token };
         setUser(fullUser);
-        await window.ghostly.saveUser(fullUser);
+        await window.ibuddy.saveUser(fullUser);
         await applyAccountPayload(data);
         setAppScreen("home");
       } catch { /* ignore */ }
@@ -133,18 +134,18 @@ const App: React.FC = () => {
     // the website's AuthCallback page) posts the token to this app's local
     // auth server before this listener has even mounted — that message would
     // otherwise be lost and login would look permanently stuck.
-    window.ghostly.getPendingAuthToken().then((pending) => {
+    window.ibuddy.getPendingAuthToken().then((pending) => {
       if (pending) handleAuthToken(pending);
     });
 
-    const offAuth = window.ghostly.onAuthToken(handleAuthToken);
+    const offAuth = window.ibuddy.onAuthToken(handleAuthToken);
     return () => offAuth();
   }, []);
 
   useEffect(() => {
-    const offShow = window.ghostly.onShow(() => {
+    const offShow = window.ibuddy.onShow(() => {
       setTimeout(() => {
-        if (useStore.getState().appScreen !== "interview") window.ghostly.enableMouse();
+        if (useStore.getState().appScreen !== "interview") window.ibuddy.enableMouse();
       }, 60);
       const { user: currentUser } = useStore.getState();
       if (currentUser?.idToken) {
@@ -180,7 +181,7 @@ const App: React.FC = () => {
   // Periodic heartbeat every 60s to track user screen time and active status
   useEffect(() => {
     if (!user?.idToken) return;
-    const appVersion = window.ghostly?.getVersion ? window.ghostly.getVersion() : "v3.4.0";
+    const appVersion = window.ibuddy?.getVersion ? window.ibuddy.getVersion() : "v3.4.0";
     
     const sendHeartbeat = () => {
       fetch(`${import.meta.env.VITE_API_URL}/heartbeat`, {
@@ -256,13 +257,13 @@ const App: React.FC = () => {
           className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3.5 px-4 py-3 rounded-2xl"
           style={{
             background: "linear-gradient(135deg, rgba(14,14,20,0.96) 0%, rgba(20,20,28,0.96) 100%)",
-            border: "1px solid rgba(139,92,246,0.35)",
+            border: "1px solid rgba(24,199,181,0.35)",
             backdropFilter: "blur(28px)",
-            boxShadow: "0 12px 40px rgba(0,0,0,0.6), 0 0 24px rgba(139,92,246,0.25), inset 0 1px 0 rgba(255,255,255,0.1)",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.6), 0 0 24px rgba(24,199,181,0.25), inset 0 1px 0 rgba(255,255,255,0.1)",
             pointerEvents: "auto",
             minWidth: "300px",
           }}
-          onMouseEnter={() => window.ghostly.enableMouse()}
+          onMouseEnter={() => window.ibuddy.enableMouse()}
         >
           {/* Animated Icon Container */}
           <div className="relative shrink-0">
@@ -273,7 +274,7 @@ const App: React.FC = () => {
               style={{
                 background: updateState === "ready" 
                   ? "conic-gradient(from 0deg, #22c55e, #10b981, transparent, #22c55e)" 
-                  : "conic-gradient(from 0deg, #8b5cf6, #eb9245, transparent, #8b5cf6)",
+                  : "conic-gradient(from 0deg, #18c7b5, #eb9245, transparent, #18c7b5)",
                 filter: "blur(4px)",
               }}
             />
@@ -282,10 +283,10 @@ const App: React.FC = () => {
               style={{
                 background: updateState === "ready"
                   ? "linear-gradient(135deg, #22c55e, #16a34a)"
-                  : "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                  : "linear-gradient(135deg, #18c7b5, #0fae9f)",
                 boxShadow: updateState === "ready"
                   ? "0 0 12px rgba(34,197,94,0.5)"
-                  : "0 0 12px rgba(139,92,246,0.5)",
+                  : "0 0 12px rgba(24,199,181,0.5)",
                 color: "#fff",
               }}
             >
@@ -322,8 +323,8 @@ const App: React.FC = () => {
                     transition={{ duration: 0.3, ease: "easeOut" }}
                     className="h-full rounded-full relative"
                     style={{
-                      background: "linear-gradient(90deg, #8b5cf6, #eb9245, #10b981)",
-                      boxShadow: "0 0 10px rgba(139,92,246,0.8)",
+                      background: "linear-gradient(90deg, #18c7b5, #eb9245, #10b981)",
+                      boxShadow: "0 0 10px rgba(24,199,181,0.8)",
                     }}
                   >
                     <motion.div
@@ -354,18 +355,18 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2 shrink-0">
             {updateState === "available" && (
               <motion.button
-                whileHover={{ scale: 1.06, boxShadow: "0 0 20px rgba(139,92,246,0.6)" }}
+                whileHover={{ scale: 1.06, boxShadow: "0 0 20px rgba(24,199,181,0.6)" }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
-                  window.ghostly.downloadUpdate();
+                  window.ibuddy.downloadUpdate();
                   setUpdateState("downloading");
                   setShowFullScreenAnimation(true);
                 }}
                 className="px-3.5 py-1.5 rounded-xl text-[11px] font-black tracking-wide text-white transition-all cursor-pointer"
                 style={{
-                  background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                  background: "linear-gradient(135deg, #18c7b5 0%, #0fae9f 100%)",
                   border: "1px solid rgba(255,255,255,0.2)",
-                  boxShadow: "0 4px 14px rgba(139,92,246,0.45)",
+                  boxShadow: "0 4px 14px rgba(24,199,181,0.45)",
                 }}
               >
                 ⚡ Download
@@ -376,7 +377,7 @@ const App: React.FC = () => {
               <motion.button
                 whileHover={{ scale: 1.06, boxShadow: "0 0 20px rgba(34,197,94,0.6)" }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => window.ghostly.installUpdate()}
+                onClick={() => window.ibuddy.installUpdate()}
                 className="px-3.5 py-1.5 rounded-xl text-[11px] font-black tracking-wide text-white transition-all cursor-pointer"
                 style={{
                   background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",

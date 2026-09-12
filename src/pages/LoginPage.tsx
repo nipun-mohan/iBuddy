@@ -12,13 +12,13 @@ export const LoginPage: React.FC = () => {
 
   const handleLogin = () => {
     setStatus("waiting");
-    window.ghostly.openExternal("https://www.ghotlyai.in/electron-login");
+    window.ibuddy.openExternal("https://www.github.com/nipun-mohan/iBuddy/electron-login");
   };
 
   const features = [
-    { icon: "⚡", text: "Sync access across devices", color: "rgba(139,92,246,0.15)", border: "rgba(139,92,246,0.3)", iconColor: "#a78bfa" },
+    { icon: "⚡", text: "Sync access across devices", color: "rgba(24,199,181,0.15)", border: "rgba(24,199,181,0.3)", iconColor: "#8ee8dc" },
     { icon: "🎁", text: "Free forever — no subscription", color: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.28)", iconColor: "#4ade80" },
-    { icon: "🔒", text: "Secure Google login", color: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.25)", iconColor: "#60a5fa" },
+    { icon: "🔒", text: "Secure Google login", color: "rgba(24,199,181,0.1)", border: "rgba(24,199,181,0.25)", iconColor: "#5eead4" },
   ];
 
   return (
@@ -35,14 +35,14 @@ export const LoginPage: React.FC = () => {
       <div
         className="fixed top-0 left-0 right-0 h-6 z-50"
         style={{ WebkitAppRegion: "drag", pointerEvents: "auto" } as React.CSSProperties}
-        onMouseEnter={() => window.ghostly.enableMouse()}
+        onMouseEnter={() => window.ibuddy.enableMouse()}
       />
 
       {/* Ambient glow */}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse 70% 60% at 50% 0%, rgba(139,92,246,0.1) 0%, transparent 65%)",
+          background: "radial-gradient(ellipse 70% 60% at 50% 0%, rgba(24,199,181,0.1) 0%, transparent 65%)",
         }}
       />
 
@@ -52,13 +52,13 @@ export const LoginPage: React.FC = () => {
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-[272px] flex flex-col gap-2.5"
         style={{ pointerEvents: "auto" }}
-        onMouseEnter={() => window.ghostly.enableMouse()}
+        onMouseEnter={() => window.ibuddy.enableMouse()}
       >
         {/* ── Main Card ── */}
         <div
           className="w-full rounded-[24px] overflow-hidden"
           style={{
-            background: "rgba(13, 13, 20, 0.92)",
+            background: "rgba(8,19,31, 0.92)",
             backdropFilter: "blur(28px)",
             WebkitBackdropFilter: "blur(28px)",
             border: "1px solid rgba(255,255,255,0.09)",
@@ -68,7 +68,7 @@ export const LoginPage: React.FC = () => {
           {/* ── Top accent bar ── */}
           <div
             className="h-0.5 w-full"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.6), rgba(99,102,241,0.4), transparent)" }}
+            style={{ background: "linear-gradient(90deg, transparent, rgba(24,199,181,0.6), rgba(14,165,164,0.4), transparent)" }}
           />
 
           <div className="px-5 pt-6 pb-5 flex flex-col gap-5">
@@ -80,18 +80,18 @@ export const LoginPage: React.FC = () => {
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 className="relative w-16 h-16 rounded-[20px] flex items-center justify-center"
                 style={{
-                  background: "linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(99,102,241,0.12) 100%)",
-                  border: "1.5px solid rgba(139,92,246,0.35)",
-                  boxShadow: "0 0 32px rgba(139,92,246,0.25), 0 8px 24px rgba(0,0,0,0.4)",
+                  background: "linear-gradient(135deg, rgba(24,199,181,0.2) 0%, rgba(14,165,164,0.12) 100%)",
+                  border: "1.5px solid rgba(24,199,181,0.35)",
+                  boxShadow: "0 0 32px rgba(24,199,181,0.25), 0 8px 24px rgba(0,0,0,0.4)",
                 }}
               >
-                <span style={{ fontSize: "30px", lineHeight: 1 }}>👻</span>
+                <img src="./favicon.png" alt="iBuddy" className="w-full h-full object-cover rounded-[18px]" />
                 {/* Online dot */}
                 <span
                   className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full"
                   style={{
                     background: "linear-gradient(135deg, #22c55e, #16a34a)",
-                    border: "2px solid #0d0d14",
+                    border: "2px solid #08131f",
                     boxShadow: "0 0 10px rgba(34,197,94,0.6)",
                   }}
                 />
@@ -107,7 +107,7 @@ export const LoginPage: React.FC = () => {
                     WebkitTextFillColor: "transparent",
                   }}
                 >
-                  Ghotly AI
+                  iBuddy
                 </h1>
                 <p className="text-[10px] font-medium mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
                   Stealth AI Copilot for Interviews
@@ -146,12 +146,12 @@ export const LoginPage: React.FC = () => {
             <div
               className="rounded-xl px-3 py-2.5"
               style={{
-                background: "rgba(139,92,246,0.06)",
-                border: "1px solid rgba(139,92,246,0.2)",
-                borderLeft: "3px solid rgba(139,92,246,0.6)",
+                background: "rgba(24,199,181,0.06)",
+                border: "1px solid rgba(24,199,181,0.2)",
+                borderLeft: "3px solid rgba(24,199,181,0.6)",
               }}
             >
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-1.5" style={{ color: "rgba(167,139,250,0.7)" }}>
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-1.5" style={{ color: "rgba(142,232,220,0.7)" }}>
                 ⚙️ Permissions needed
               </p>
               <div className="flex flex-col gap-1">
@@ -193,10 +193,10 @@ export const LoginPage: React.FC = () => {
                   </div>
                   <div
                     className="flex items-center gap-2 px-3 py-2 rounded-xl"
-                    style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.15)" }}
+                    style={{ background: "rgba(24,199,181,0.06)", border: "1px solid rgba(24,199,181,0.15)" }}
                   >
                     <span className="text-[10px] shrink-0">💡</span>
-                    <p className="text-[9px] font-semibold leading-relaxed" style={{ color: "rgba(167,139,250,0.65)" }}>
+                    <p className="text-[9px] font-semibold leading-relaxed" style={{ color: "rgba(142,232,220,0.65)" }}>
                       Allow Microphone & Screen access when prompted.
                     </p>
                   </div>
@@ -208,9 +208,9 @@ export const LoginPage: React.FC = () => {
                   onClick={handleLogin}
                   className="w-full py-3 rounded-xl flex items-center justify-center gap-2.5 relative overflow-hidden outline-none border-none"
                   style={{
-                    background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                    background: "linear-gradient(135deg, #18c7b5 0%, #0fae9f 100%)",
                     color: "#fff",
-                    boxShadow: "0 4px 20px rgba(139,92,246,0.45), 0 1px 0 rgba(255,255,255,0.18) inset",
+                    boxShadow: "0 4px 20px rgba(24,199,181,0.45), 0 1px 0 rgba(255,255,255,0.18) inset",
                   }}
                 >
                   {/* Shimmer overlay */}
@@ -242,7 +242,7 @@ export const LoginPage: React.FC = () => {
         {/* ── Quit button ── */}
         <div className="flex justify-center">
           <button
-            onClick={() => window.ghostly.quit()}
+            onClick={() => window.ibuddy.quit()}
             className="text-[10px] font-semibold px-4 py-1.5 rounded-lg transition-all outline-none"
             style={{
               color: "rgba(255,255,255,0.2)",
